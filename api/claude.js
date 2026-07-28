@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
             },
             body: JSON.stringify({
                                 model: 'claude-sonnet-5',
-                max_tokens: 1024,
+            max_tokens: 4096,
                 messages: [{ role: 'user', content: message }]
             })
         });
@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
         }
         
         res.status(200).json({ 
-            content: data.content[0].text 
+                        content: (data.content.find(b => b.type === 'text') || {}).text
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
