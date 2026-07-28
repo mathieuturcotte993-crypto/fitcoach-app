@@ -1,709 +1,872 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitCoach - Votre App d'Entraînement</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-            padding: 10px;
-        }
-        
-        .app {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .content {
-            padding: 20px;
-        }
-        
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 100%;
-        }
-        
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        button:active:not(:disabled) {
-            transform: translateY(0);
-        }
-        
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        
-        .btn-secondary:hover:not(:disabled) {
-            background: #e0e0e0;
-            box-shadow: none;
-        }
-        
-        .workout-day {
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-        }
-        
-        .workout-day h3 {
-            color: #667eea;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-        
-        .workout-day p {
-            color: #666;
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 10px;
-        }
-        
-        .exercise-log {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-        }
-        
-        .exercise-log h4 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        .log-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .log-inputs input {
-            font-size: 13px;
-        }
-        
-        .log-inputs textarea {
-            grid-column: 1 / -1;
-            min-height: 60px;
-        }
-        
-        .message {
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
-        
-        .message.info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-left: 3px solid #1565c0;
-        }
-        
-        .message.success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 3px solid #2e7d32;
-        }
-        
-        .message.error {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 3px solid #c62828;
-        }
-        
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 500px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            overflow: hidden;
-            background: #f9f9f9;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .chat-message {
-            padding: 10px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            line-height: 1.4;
-            max-width: 90%;
-        }
-        
-        .chat-message.user {
-            background: #667eea;
-            color: white;
-            align-self: flex-end;
-            margin-left: 10%;
-        }
-        
-        .chat-message.assistant {
-            background: white;
-            color: #333;
-            border: 1px solid #ddd;
-            align-self: flex-start;
-            margin-right: 10%;
-        }
-        
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-            padding: 12px;
-            border-top: 1px solid #ddd;
-            background: white;
-        }
-        
-        .chat-input-area input {
-            flex: 1;
-            margin: 0;
-            font-size: 13px;
-        }
-        
-        .chat-input-area button {
-            flex: 0;
-            padding: 8px 16px;
-            width: auto;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #667eea;
-            font-weight: 600;
-        }
-        
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .stat-card .value {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .stat-card .label {
-            font-size: 12px;
-            opacity: 0.9;
-        }
-        
-        .close-btn {
-            background: #f0f0f0;
-            color: #333;
-            padding: 8px 12px;
-            font-size: 12px;
-            width: auto;
-            margin-top: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        
-        function FitCoachApp() {
-            const [currentTab, setCurrentTab] = useState('setup');
-            const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
-            const [userLevel, setUserLevel] = useState(() => localStorage.getItem('userLevel') || 'intermediate');
-            const [userGoals, setUserGoals] = useState(() => localStorage.getItem('userGoals') || '');
-            const [currentWeekPlan, setCurrentWeekPlan] = useState(() => JSON.parse(localStorage.getItem('weekPlan') || 'null'));
-            const [weekNumber, setWeekNumber] = useState(() => parseInt(localStorage.getItem('weekNumber') || '1'));
-            const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('logs') || '{}'));
-            const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages') || '[]'));
-            const [chatInput, setChatInput] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [message, setMessage] = useState('');
-            const chatEndRef = useRef(null);
-            
-            // Auto-scroll chat
-            useEffect(() => {
-                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, [chatMessages]);
-            
-            // Sauvegarder les données
-            useEffect(() => {
-                localStorage.setItem('apiKey', apiKey);
-            }, [apiKey]);
-            
-            useEffect(() => {
-                localStorage.setItem('userLevel', userLevel);
-            }, [userLevel]);
-            
-            useEffect(() => {
-                localStorage.setItem('userGoals', userGoals);
-            }, [userGoals]);
-            
-            useEffect(() => {
-                if (currentWeekPlan) {
-                    localStorage.setItem('weekPlan', JSON.stringify(currentWeekPlan));
-                }
-            }, [currentWeekPlan]);
-            
-            useEffect(() => {
-                localStorage.setItem('weekNumber', weekNumber);
-            }, [weekNumber]);
-            
-            useEffect(() => {
-                localStorage.setItem('logs', JSON.stringify(logs));
-            }, [logs]);
-            
-            useEffect(() => {
-                localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-            }, [chatMessages]);
-            
-            const callClaudeAPI = async (userMessage) => {
-                if (!apiKey) {
-                    setMessage('Erreur: Veuillez configurer votre clé API Claude d\'abord');
-                    return null;
-                }
-                
-                try {
-                    const response = await fetch('/api/claude', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            message: userMessage,
-                            apiKey: apiKey
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || 'Erreur API');
-                    }
-                    
-                    const data = await response.json();
-                    return data.content;
-                } catch (error) {
-                    setMessage(`Erreur: ${error.message}`);
-                    return null;
-                }
-            };
-            
-            const generateWeekPlan = async () => {
-                if (!apiKey) {
-                    setMessage('Erreur: Clé API manquante');
-                    return;
-                }
-                
-                setLoading(true);
-                setMessage('Génération de votre plan d\'entraînement...');
-                
-                const prompt = `Crée un plan d'entraînement complet pour une semaine (5 séances) pour quelqu'un:
-- Niveau: ${userLevel}
-- Objectifs: ${userGoals}
-- Équipement: Salle de sport Econofitness (équipement standard)
-- Types d'entraînement à varier: Musculation, Running, Crossfit, Cardio, Vélo, Randonnée
-
-Format de réponse (JSON uniquement, sans texte):
-{
-  "week": ${weekNumber},
-  "days": [
-    {"day": "Lundi", "type": "Musculation", "exercises": [{"name": "Exercice 1", "sets": "4", "reps": "8-10", "weight": "100kg"}]},
-    {"day": "Mardi", "type": "Running", "exercises": [{"name": "5km Run", "sets": "1", "reps": "N/A", "weight": "Distance: 5km"}]},
-    {"day": "Mercredi", "type": "Cardio", "exercises": [{"name": "Cardio mixte", "sets": "1", "reps": "N/A", "weight": "30min"}]},
-    {"day": "Jeudi", "type": "Crossfit", "exercises": [{"name": "WOD", "sets": "3", "reps": "10-15", "weight": "Variable"}]},
-    {"day": "Vendredi", "type": "Vélo", "exercises": [{"name": "Séance vélo", "sets": "1", "reps": "N/A", "weight": "Distance: 20km"}]}
-  ]
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitCoach - Votre App d'Entraînement</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
 }
 
-Crée un plan équilibré et progressif. Réponds UNIQUEMENT avec le JSON.`;
-                
-                const result = await callClaudeAPI(prompt);
-                
-                if (result) {
-                    try {
-                        const jsonMatch = result.match(/\{[\s\S]*\}/);
-                        if (jsonMatch) {
-                            const plan = JSON.parse(jsonMatch[0]);
-                            setCurrentWeekPlan(plan);
-                            setWeekNumber(plan.week || weekNumber);
-                            setMessage('✅ Plan généré avec succès!');
-                            setCurrentTab('plan');
-                        }
-                    } catch (e) {
-                        setMessage('Erreur: Impossible de parser le plan. Réessayez.');
-                    }
-                }
-                setLoading(false);
-            };
-            
-            const logExercise = (dayIndex, exerciseIndex, data) => {
-                const key = `${dayIndex}-${exerciseIndex}`;
-                setLogs(prev => ({
-                    ...prev,
-                    [key]: { ...prev[key], ...data }
-                }));
-            };
-            
-            const sendChatMessage = async () => {
-                if (!chatInput.trim()) return;
-                
-                const userMsg = chatInput;
-                setChatInput('');
-                setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-                
-                setLoading(true);
-                
-                const result = await callClaudeAPI(userMsg);
-                
-                if (result) {
-                    setChatMessages(prev => [...prev, { role: 'assistant', content: result }]);
-                }
-                setLoading(false);
-            };
-            
-            const nextWeek = () => {
-                setWeekNumber(prev => prev + 1);
-                setCurrentWeekPlan(null);
-                setMessage('');
-            };
-            
-            return (
-                <div className="app">
-                    <div className="header">
-                        <h1>💪 FitCoach</h1>
-                        <p>Votre coach d'entraînement IA</p>
-                    </div>
-                    
-                    <div className="content">
-                        <div className="tab-buttons">
-                            <button 
-                                className={`tab-btn ${currentTab === 'setup' ? 'active' : ''}`}
-                                onClick={() => setCurrentTab('setup')}
-                            >
-                                ⚙️ Config
-                            </button>
-                            <button 
-                                className={`tab-btn ${currentTab === 'plan' ? 'active' : ''}`}
-                                onClick={() => setCurrentTab('plan')}
-                            >
-                                📅 Plan
-                            </button>
-                            <button 
-                                className={`tab-btn ${currentTab === 'chat' ? 'active' : ''}`}
-                                onClick={() => setCurrentTab('chat')}
-                            >
-                                💬 Coach IA
-                            </button>
-                        </div>
-                        
-                        {message && (
-                            <div className={`message ${message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info'}`}>
-                                {message}
-                            </div>
-                        )}
-                        
-                        {currentTab === 'setup' && (
-                            <div>
-                                <h2 style={{marginBottom: '15px', color: '#333'}}>Configuration Initiale</h2>
-                                
-                                <div className="form-group">
-                                    <label>🔑 Clé API Claude</label>
-                                    <input 
-                                        type="password"
-                                        value={apiKey}
-                                        onChange={(e) => setApiKey(e.target.value)}
-                                        placeholder="sk-ant-..."
-                                    />
-                                    <small style={{color: '#666', marginTop: '5px', display: 'block'}}>
-                                        👉 Obtenez votre clé sur console.anthropic.com
-                                    </small>
-                                </div>
-                                
-                                <div className="form-group">
-                                    <label>📊 Votre Niveau</label>
-                                    <select value={userLevel} onChange={(e) => setUserLevel(e.target.value)}>
-                                        <option value="beginner">Débutant</option>
-                                        <option value="intermediate">Intermédiaire</option>
-                                        <option value="advanced">Avancé</option>
-                                    </select>
-                                </div>
-                                
-                                <div className="form-group">
-                                    <label>🎯 Vos Objectifs</label>
-                                    <textarea 
-                                        value={userGoals}
-                                        onChange={(e) => setUserGoals(e.target.value)}
-                                        placeholder="Ex: Me préparer pour mon Hyrox du 19 septembre, prendre du muscle..."
-                                    />
-                                </div>
-                                
-                                <button onClick={generateWeekPlan} disabled={loading}>
-                                    {loading ? (
-                                        <>
-                                            <span className="spinner"></span>
-                                            Génération...
-                                        </>
-                                    ) : (
-                                        '🚀 Générer Plan Semaine ' + weekNumber
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                        
-                        {currentTab === 'plan' && currentWeekPlan && (
-                            <div>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                                    <h2 style={{color: '#333'}}>Semaine {currentWeekPlan.week}</h2>
-                                    <button className="btn-secondary" onClick={nextWeek} style={{width: 'auto', padding: '8px 16px'}}>
-                                        Semaine Suivante →
-                                    </button>
-                                </div>
-                                
-                                {currentWeekPlan.days.map((day, dayIdx) => (
-                                    <div key={dayIdx} className="workout-day">
-                                        <h3>{day.day} - {day.type}</h3>
-                                        
-                                        {day.exercises.map((ex, exIdx) => {
-                                            const logKey = `${dayIdx}-${exIdx}`;
-                                            const logged = logs[logKey] || {};
-                                            
-                                            return (
-                                                <div key={exIdx} className="exercise-log">
-                                                    <h4>{ex.name}</h4>
-                                                    <p style={{marginBottom: '10px', fontSize: '12px', color: '#999'}}>
-                                                        {ex.sets} x {ex.reps} {ex.weight ? `@ ${ex.weight}` : ''}
-                                                    </p>
-                                                    
-                                                    <div className="log-inputs">
-                                                        <input 
-                                                            type="number"
-                                                            placeholder="Poids (kg)"
-                                                            value={logged.weight || ''}
-                                                            onChange={(e) => logExercise(dayIdx, exIdx, {weight: e.target.value})}
-                                                        />
-                                                        <input 
-                                                            type="number"
-                                                            placeholder="Reps"
-                                                            value={logged.reps || ''}
-                                                            onChange={(e) => logExercise(dayIdx, exIdx, {reps: e.target.value})}
-                                                        />
-                                                        <input 
-                                                            type="number"
-                                                            placeholder="Distance (km)"
-                                                            value={logged.distance || ''}
-                                                            onChange={(e) => logExercise(dayIdx, exIdx, {distance: e.target.value})}
-                                                        />
-                                                        <input 
-                                                            type="text"
-                                                            placeholder="Temps (ex: 30:45)"
-                                                            value={logged.time || ''}
-                                                            onChange={(e) => logExercise(dayIdx, exIdx, {time: e.target.value})}
-                                                        />
-                                                        <textarea 
-                                                            placeholder="Notes (sensation, difficulté...)"
-                                                            value={logged.notes || ''}
-                                                            onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})}
-                                                        />
-                                                    </div>
-                                                    {Object.keys(logged).length > 0 && <p style={{fontSize: '12px', color: '#667eea', marginTop: '8px'}}>✅ Données enregistrées</p>}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        
-                        {currentTab === 'plan' && !currentWeekPlan && (
-                            <div className="message info">
-                                Allez dans l'onglet Configuration pour générer votre plan d'entraînement
-                            </div>
-                        )}
-                        
-                        {currentTab === 'chat' && (
-                            <div>
-                                <h2 style={{marginBottom: '15px', color: '#333'}}>Coach IA</h2>
-                                <p style={{marginBottom: '15px', fontSize: '13px', color: '#666'}}>
-                                    Posez vos questions sur l'entraînement, la technique, la nutrition...
-                                </p>
-                                
-                                <div className="chat-container">
-                                    <div className="chat-messages">
-                                        {chatMessages.length === 0 && (
-                                            <div style={{textAlign: 'center', color: '#999', marginTop: '20px'}}>
-                                                Commence la conversation! 💪
-                                            </div>
-                                        )}
-                                        {chatMessages.map((msg, idx) => (
-                                            <div key={idx} className={`chat-message ${msg.role}`}>
-                                                {msg.content}
-                                            </div>
-                                        ))}
-                                        {loading && (
-                                            <div className="chat-message assistant">
-                                                <span className="spinner"></span> Coach réfléchit...
-                                            </div>
-                                        )}
-                                        <div ref={chatEndRef} />
-                                    </div>
-                                    
-                                    <div className="chat-input-area">
-                                        <input 
-                                            type="text"
-                                            value={chatInput}
-                                            onChange={(e) => setChatInput(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-                                            placeholder="Votre question..."
-                                            disabled={loading}
-                                        />
-                                        <button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>
-                                            ↩️
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-        
-        ReactDOM.render(<FitCoachApp />, document.getElementById('root'));
-    </script>
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: #f5f5f5;
+padding: 10px;
+}
+
+.app {
+max-width: 600px;
+margin: 0 auto;
+background: white;
+border-radius: 12px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+overflow: hidden;
+}
+
+.header {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 20px;
+text-align: center;
+}
+
+.header h1 {
+font-size: 28px;
+margin-bottom: 5px;
+}
+
+.content {
+padding: 20px;
+}
+
+.tab-buttons {
+display: flex;
+gap: 6px;
+margin-bottom: 20px;
+border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-btn {
+flex: 1;
+padding: 10px 4px;
+border: none;
+background: none;
+cursor: pointer;
+font-size: 12px;
+font-weight: 600;
+color: #666;
+border-bottom: 3px solid transparent;
+transition: all 0.3s;
+}
+
+.tab-btn.active {
+color: #667eea;
+border-bottom-color: #667eea;
+}
+
+.form-group {
+margin-bottom: 15px;
+}
+
+label {
+display: block;
+margin-bottom: 5px;
+font-weight: 600;
+color: #333;
+font-size: 14px;
+}
+
+input, select, textarea {
+width: 100%;
+padding: 10px;
+border: 1px solid #ddd;
+border-radius: 6px;
+font-size: 14px;
+font-family: inherit;
+}
+
+textarea {
+resize: vertical;
+min-height: 80px;
+}
+
+input:focus, select:focus, textarea:focus {
+outline: none;
+border-color: #667eea;
+box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+button {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 12px 24px;
+border: none;
+border-radius: 6px;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+transition: transform 0.2s, box-shadow 0.2s;
+width: 100%;
+}
+
+button:hover:not(:disabled) {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+button:active:not(:disabled) {
+transform: translateY(0);
+}
+
+button:disabled {
+opacity: 0.6;
+cursor: not-allowed;
+}
+
+.btn-secondary {
+background: #f0f0f0;
+color: #333;
+}
+
+.btn-secondary:hover:not(:disabled) {
+background: #e0e0e0;
+box-shadow: none;
+}
+
+.workout-day {
+background: #f9f9f9;
+border-left: 4px solid #667eea;
+padding: 15px;
+margin-bottom: 15px;
+border-radius: 6px;
+}
+
+.workout-day h3 {
+color: #667eea;
+margin-bottom: 8px;
+font-size: 16px;
+}
+
+.workout-day p {
+color: #666;
+font-size: 13px;
+line-height: 1.5;
+margin-bottom: 10px;
+}
+
+.exercise-log {
+background: #fff;
+border: 1px solid #e0e0e0;
+padding: 15px;
+margin-bottom: 12px;
+border-radius: 6px;
+}
+
+.exercise-log h4 {
+color: #333;
+margin-bottom: 10px;
+font-size: 14px;
+}
+
+.log-inputs {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin-bottom: 10px;
+}
+
+.log-inputs input {
+font-size: 13px;
+}
+
+.log-inputs textarea {
+grid-column: 1 / -1;
+min-height: 60px;
+}
+
+.message {
+padding: 12px;
+border-radius: 6px;
+margin-bottom: 15px;
+font-size: 13px;
+}
+
+.message.info {
+background: #e3f2fd;
+color: #1565c0;
+border-left: 3px solid #1565c0;
+}
+
+.message.success {
+background: #e8f5e9;
+color: #2e7d32;
+border-left: 3px solid #2e7d32;
+}
+
+.message.error {
+background: #ffebee;
+color: #c62828;
+border-left: 3px solid #c62828;
+}
+
+.chat-container {
+display: flex;
+flex-direction: column;
+height: 500px;
+border: 1px solid #ddd;
+border-radius: 6px;
+overflow: hidden;
+background: #f9f9f9;
+}
+
+.chat-messages {
+flex: 1;
+overflow-y: auto;
+padding: 15px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.chat-message {
+padding: 10px 12px;
+border-radius: 6px;
+font-size: 13px;
+line-height: 1.4;
+max-width: 90%;
+white-space: pre-wrap;
+}
+
+.chat-message.user {
+background: #667eea;
+color: white;
+align-self: flex-end;
+margin-left: 10%;
+}
+
+.chat-message.assistant {
+background: white;
+color: #333;
+border: 1px solid #ddd;
+align-self: flex-start;
+margin-right: 10%;
+}
+
+.chat-input-area {
+display: flex;
+gap: 8px;
+padding: 12px;
+border-top: 1px solid #ddd;
+background: white;
+}
+
+.chat-input-area input {
+flex: 1;
+margin: 0;
+font-size: 13px;
+}
+
+.chat-input-area button {
+flex: 0;
+padding: 8px 16px;
+width: auto;
+}
+
+.loading {
+text-align: center;
+padding: 20px;
+color: #667eea;
+font-weight: 600;
+}
+
+.spinner {
+display: inline-block;
+width: 20px;
+height: 20px;
+border: 3px solid #f3f3f3;
+border-top: 3px solid #667eea;
+border-radius: 50%;
+animation: spin 1s linear infinite;
+margin-right: 10px;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+.stats {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 15px;
+}
+
+.stat-card {
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+padding: 15px;
+border-radius: 8px;
+text-align: center;
+}
+
+.stat-card .value {
+font-size: 24px;
+font-weight: bold;
+margin-bottom: 5px;
+}
+
+.stat-card .label {
+font-size: 12px;
+opacity: 0.9;
+}
+
+.close-btn {
+background: #f0f0f0;
+color: #333;
+padding: 8px 12px;
+font-size: 12px;
+width: auto;
+margin-top: 10px;
+}
+
+.chart-container {
+display: flex;
+align-items: flex-end;
+gap: 8px;
+height: 150px;
+margin: 15px 0;
+padding: 10px;
+background: #f9f9f9;
+border-radius: 8px;
+}
+
+.chart-bar-wrap {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: flex-end;
+height: 100%;
+}
+
+.chart-bar {
+width: 100%;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+border-radius: 4px 4px 0 0;
+min-height: 4px;
+}
+
+.chart-label {
+font-size: 11px;
+color: #666;
+margin-top: 4px;
+text-align: center;
+}
+
+.history-week {
+background: #f9f9f9;
+border-left: 4px solid #764ba2;
+padding: 15px;
+margin-bottom: 12px;
+border-radius: 6px;
+}
+
+.history-week h3 {
+color: #764ba2;
+margin-bottom: 8px;
+font-size: 15px;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+function FitCoachApp() {
+const [currentTab, setCurrentTab] = useState('setup');
+const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
+const [userLevel, setUserLevel] = useState(() => localStorage.getItem('userLevel') || 'intermediate');
+const [userEquipment, setUserEquipment] = useState(() => localStorage.getItem('userEquipment') || 'complet');
+const [userGoals, setUserGoals] = useState(() => localStorage.getItem('userGoals') || '');
+const [currentWeekPlan, setCurrentWeekPlan] = useState(() => JSON.parse(localStorage.getItem('weekPlan') || 'null'));
+const [weekNumber, setWeekNumber] = useState(() => parseInt(localStorage.getItem('weekNumber') || '1'));
+const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('logs') || '{}'));
+const [weekHistory, setWeekHistory] = useState(() => JSON.parse(localStorage.getItem('weekHistory') || '[]'));
+const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages') || '[]'));
+const [chatInput, setChatInput] = useState('');
+const [loading, setLoading] = useState(false);
+const [message, setMessage] = useState('');
+const chatEndRef = useRef(null);
+
+const equipmentLabels = {
+complet: 'Salle de sport complète (Econofitness, équipement standard)',
+halteres: 'Haltères seulement (entraînement à la maison)',
+poids_corps: 'Poids du corps uniquement (aucun équipement)'
+};
+
+useEffect(() => {
+chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+}, [chatMessages]);
+
+useEffect(() => {
+localStorage.setItem('apiKey', apiKey);
+}, [apiKey]);
+
+useEffect(() => {
+localStorage.setItem('userLevel', userLevel);
+}, [userLevel]);
+
+useEffect(() => {
+localStorage.setItem('userEquipment', userEquipment);
+}, [userEquipment]);
+
+useEffect(() => {
+localStorage.setItem('userGoals', userGoals);
+}, [userGoals]);
+
+useEffect(() => {
+if (currentWeekPlan) {
+localStorage.setItem('weekPlan', JSON.stringify(currentWeekPlan));
+} else {
+localStorage.removeItem('weekPlan');
+}
+}, [currentWeekPlan]);
+
+useEffect(() => {
+localStorage.setItem('weekNumber', weekNumber);
+}, [weekNumber]);
+
+useEffect(() => {
+localStorage.setItem('logs', JSON.stringify(logs));
+}, [logs]);
+
+useEffect(() => {
+localStorage.setItem('weekHistory', JSON.stringify(weekHistory));
+}, [weekHistory]);
+
+useEffect(() => {
+localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+}, [chatMessages]);
+
+const callClaudeAPI = async (messages, system) => {
+if (!apiKey) {
+setMessage('Erreur: Veuillez configurer votre clé API Claude d\'abord');
+return null;
+}
+
+try {
+const response = await fetch('/api/claude', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+},
+body: JSON.stringify({
+apiKey: apiKey,
+messages: messages,
+system: system
+})
+});
+
+if (!response.ok) {
+const error = await response.json();
+throw new Error(error.error || 'Erreur API');
+}
+
+const data = await response.json();
+return data.content;
+} catch (error) {
+setMessage('Erreur: ' + error.message);
+return null;
+}
+};
+
+const computeWeekVolume = (weekEntry) => {
+let total = 0;
+Object.values(weekEntry.logs || {}).forEach((log) => {
+const w = parseFloat(log.weight) || 0;
+const r = parseFloat(log.reps) || 0;
+total += w * r;
+});
+return Math.round(total);
+};
+
+const generateWeekPlan = async () => {
+if (!apiKey) {
+setMessage('Erreur: Clé API manquante');
+return;
+}
+
+setLoading(true);
+setMessage('Génération de votre plan d\'entraînement...');
+
+const lastWeek = weekHistory[weekHistory.length - 1];
+let progressionNote = '';
+if (lastWeek) {
+const parts = Object.entries(lastWeek.logs || {}).map(([key, val]) => {
+const idxParts = key.split('-').map(Number);
+const dayIdx = idxParts[0];
+const exIdx = idxParts[1];
+const day = lastWeek.plan.days[dayIdx];
+const ex = day && day.exercises[exIdx];
+if (!ex) return null;
+const details = [];
+if (val.weight) details.push(val.weight + 'kg');
+if (val.reps) details.push(val.reps + ' reps');
+if (val.distance) details.push(val.distance + 'km');
+if (val.time) details.push(val.time);
+if (val.notes) details.push('note: ' + val.notes);
+return details.length ? (ex.name + ': ' + details.join(', ')) : null;
+}).filter(Boolean);
+if (parts.length) {
+progressionNote = '\nDonnées réelles enregistrées la semaine ' + lastWeek.week + ' (utilise-les pour ajuster intelligemment la progression, augmente légèrement la charge ou le volume si les performances étaient bonnes, sinon stabilise): ' + parts.join('; ');
+}
+}
+
+const prompt = 'Crée un plan d\'entraînement complet pour une semaine (5 séances) pour quelqu\'un:\n' +
+'- Niveau: ' + userLevel + '\n' +
+'- Objectifs: ' + userGoals + '\n' +
+'- Équipement: ' + equipmentLabels[userEquipment] + '\n' +
+'- Types d\'entraînement à varier: Musculation, Running, Crossfit, Cardio, Vélo, Randonnée' + progressionNote + '\n\n' +
+'Format de réponse (JSON uniquement, sans texte):\n' +
+'{\n' +
+'"week": ' + weekNumber + ',\n' +
+'"days": [\n' +
+'{"day": "Lundi", "type": "Musculation", "exercises": [{"name": "Exercice 1", "sets": "4", "reps": "8-10", "weight": "100kg"}]},\n' +
+'{"day": "Mardi", "type": "Running", "exercises": [{"name": "5km Run", "sets": "1", "reps": "N/A", "weight": "Distance: 5km"}]},\n' +
+'{"day": "Mercredi", "type": "Cardio", "exercises": [{"name": "Cardio mixte", "sets": "1", "reps": "N/A", "weight": "30min"}]},\n' +
+'{"day": "Jeudi", "type": "Crossfit", "exercises": [{"name": "WOD", "sets": "3", "reps": "10-15", "weight": "Variable"}]},\n' +
+'{"day": "Vendredi", "type": "Vélo", "exercises": [{"name": "Séance vélo", "sets": "1", "reps": "N/A", "weight": "Distance: 20km"}]}\n' +
+']\n' +
+'}\n\n' +
+'Adapte les exercices à l\'équipement disponible. Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.';
+
+const result = await callClaudeAPI([{ role: 'user', content: prompt }]);
+
+if (result) {
+try {
+const jsonMatch = result.match(/\{[\s\S]*\}/);
+if (jsonMatch) {
+const plan = JSON.parse(jsonMatch[0]);
+setCurrentWeekPlan(plan);
+setWeekNumber(plan.week || weekNumber);
+setMessage('✅ Plan généré avec succès!');
+setCurrentTab('plan');
+}
+} catch (e) {
+setMessage('Erreur: Impossible de parser le plan. Réessayez.');
+}
+}
+setLoading(false);
+};
+
+const logExercise = (dayIndex, exerciseIndex, data) => {
+const key = dayIndex + '-' + exerciseIndex;
+setLogs(prev => ({
+...prev,
+[key]: { ...prev[key], ...data }
+}));
+};
+
+const sendChatMessage = async () => {
+if (!chatInput.trim()) return;
+
+const userMsg = chatInput;
+setChatInput('');
+const updatedMessages = [...chatMessages, { role: 'user', content: userMsg }];
+setChatMessages(updatedMessages);
+
+setLoading(true);
+
+const system = 'Tu es un coach sportif IA personnalisé et bienveillant pour l\'app FitCoach. Contexte de l\'utilisateur: niveau ' + userLevel + ', objectifs: "' + (userGoals || 'non précisés') + '", équipement disponible: ' + equipmentLabels[userEquipment] + ', semaine d\'entraînement actuelle: ' + weekNumber + '. Utilise ce contexte pour donner des conseils personnalisés, concis et pratiques.';
+
+const apiMessages = updatedMessages.slice(-12).map(m => ({ role: m.role, content: m.content }));
+
+const result = await callClaudeAPI(apiMessages, system);
+
+if (result) {
+setChatMessages(prev => [...prev, { role: 'assistant', content: result }]);
+}
+setLoading(false);
+};
+
+const finishWeek = () => {
+if (currentWeekPlan) {
+setWeekHistory(prev => [...prev, { week: currentWeekPlan.week, plan: currentWeekPlan, logs: logs, completedAt: new Date().toISOString() }]);
+}
+setWeekNumber(prev => prev + 1);
+setCurrentWeekPlan(null);
+setLogs({});
+setMessage('');
+setCurrentTab('setup');
+};
+
+return (
+<div className="app">
+<div className="header">
+<h1>💪 FitCoach</h1>
+<p>Votre coach d'entraînement IA</p>
+</div>
+
+<div className="content">
+<div className="tab-buttons">
+<button
+className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')}
+onClick={() => setCurrentTab('setup')}
+>
+⚙️ Config
+</button>
+<button
+className={'tab-btn ' + (currentTab === 'plan' ? 'active' : '')}
+onClick={() => setCurrentTab('plan')}
+>
+📅 Plan
+</button>
+<button
+className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')}
+onClick={() => setCurrentTab('chat')}
+>
+💬 Coach IA
+</button>
+<button
+className={'tab-btn ' + (currentTab === 'history' ? 'active' : '')}
+onClick={() => setCurrentTab('history')}
+>
+📈 Historique
+</button>
+</div>
+
+{message && (
+<div className={'message ' + (message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info')}>
+{message}
+</div>
+)}
+
+{currentTab === 'setup' && (
+<div>
+<h2 style={{marginBottom: '15px', color: '#333'}}>Configuration Initiale</h2>
+
+<div className="form-group">
+<label>🔑 Clé API Claude</label>
+<input
+type="password"
+value={apiKey}
+onChange={(e) => setApiKey(e.target.value)}
+placeholder="sk-ant-..."
+/>
+<small style={{color: '#666', marginTop: '5px', display: 'block'}}>
+👉 Obtenez votre clé sur console.anthropic.com
+</small>
+</div>
+
+<div className="form-group">
+<label>📊 Votre Niveau</label>
+<select value={userLevel} onChange={(e) => setUserLevel(e.target.value)}>
+<option value="beginner">Débutant</option>
+<option value="intermediate">Intermédiaire</option>
+<option value="advanced">Avancé</option>
+</select>
+</div>
+
+<div className="form-group">
+<label>🏋️ Équipement Disponible</label>
+<select value={userEquipment} onChange={(e) => setUserEquipment(e.target.value)}>
+<option value="complet">Salle de sport complète</option>
+<option value="halteres">Haltères seulement</option>
+<option value="poids_corps">Poids du corps uniquement</option>
+</select>
+</div>
+
+<div className="form-group">
+<label>🎯 Vos Objectifs</label>
+<textarea
+value={userGoals}
+onChange={(e) => setUserGoals(e.target.value)}
+placeholder="Ex: Me préparer pour mon Hyrox du 19 septembre, prendre du muscle..."
+/>
+</div>
+
+<button onClick={generateWeekPlan} disabled={loading}>
+{loading ? (
+<>
+<span className="spinner"></span>
+Génération...
+</>
+) : (
+'🚀 Générer Plan Semaine ' + weekNumber
+)}
+</button>
+</div>
+)}
+
+{currentTab === 'plan' && currentWeekPlan && (
+<div>
+<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+<h2 style={{color: '#333'}}>Semaine {currentWeekPlan.week}</h2>
+<button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 16px'}}>
+✅ Terminer la semaine
+</button>
+</div>
+
+{currentWeekPlan.days.map((day, dayIdx) => (
+<div key={dayIdx} className="workout-day">
+<h3>{day.day} - {day.type}</h3>
+
+{day.exercises.map((ex, exIdx) => {
+const logKey = dayIdx + '-' + exIdx;
+const logged = logs[logKey] || {};
+
+return (
+<div key={exIdx} className="exercise-log">
+<h4>{ex.name}</h4>
+<p style={{marginBottom: '10px', fontSize: '12px', color: '#999'}}>
+{ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
+</p>
+
+<div className="log-inputs">
+<input
+type="number"
+placeholder="Poids (kg)"
+value={logged.weight || ''}
+onChange={(e) => logExercise(dayIdx, exIdx, {weight: e.target.value})}
+/>
+<input
+type="number"
+placeholder="Reps"
+value={logged.reps || ''}
+onChange={(e) => logExercise(dayIdx, exIdx, {reps: e.target.value})}
+/>
+<input
+type="number"
+placeholder="Distance (km)"
+value={logged.distance || ''}
+onChange={(e) => logExercise(dayIdx, exIdx, {distance: e.target.value})}
+/>
+<input
+type="text"
+placeholder="Temps (ex: 30:45)"
+value={logged.time || ''}
+onChange={(e) => logExercise(dayIdx, exIdx, {time: e.target.value})}
+/>
+<textarea
+placeholder="Notes (sensation, difficulté...)"
+value={logged.notes || ''}
+onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})}
+/>
+</div>
+{Object.keys(logged).length > 0 && <p style={{fontSize: '12px', color: '#667eea', marginTop: '8px'}}>✅ Données enregistrées</p>}
+</div>
+);
+})}
+</div>
+))}
+</div>
+)}
+
+{currentTab === 'plan' && !currentWeekPlan && (
+<div className="message info">
+Allez dans l'onglet Configuration pour générer votre plan d'entraînement
+</div>
+)}
+
+{currentTab === 'chat' && (
+<div>
+<h2 style={{marginBottom: '15px', color: '#333'}}>Coach IA</h2>
+<p style={{marginBottom: '15px', fontSize: '13px', color: '#666'}}>
+Posez vos questions sur l'entraînement, la technique, la nutrition...
+</p>
+
+<div className="chat-container">
+<div className="chat-messages">
+{chatMessages.length === 0 && (
+<div style={{textAlign: 'center', color: '#999', marginTop: '20px'}}>
+Commence la conversation! 💪
+</div>
+)}
+{chatMessages.map((msg, idx) => (
+<div key={idx} className={'chat-message ' + msg.role}>
+{msg.content}
+</div>
+))}
+{loading && (
+<div className="chat-message assistant">
+<span className="spinner"></span> Coach réfléchit...
+</div>
+)}
+<div ref={chatEndRef} />
+</div>
+
+<div className="chat-input-area">
+<input
+type="text"
+value={chatInput}
+onChange={(e) => setChatInput(e.target.value)}
+onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+placeholder="Votre question..."
+disabled={loading}
+/>
+<button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>
+↩️
+</button>
+</div>
+</div>
+</div>
+)}
+
+{currentTab === 'history' && (
+<div>
+<h2 style={{marginBottom: '15px', color: '#333'}}>📈 Historique & Progression</h2>
+{weekHistory.length === 0 && (
+<div className="message info">
+Aucune semaine terminée pour l'instant. Complète ta semaine et clique sur "✅ Terminer la semaine" dans l'onglet Plan pour commencer ton historique.
+</div>
+)}
+{weekHistory.length > 0 && (
+<div>
+<h3 style={{marginBottom: '10px', fontSize: '14px', color: '#666'}}>Volume total (poids x reps) par semaine</h3>
+<div className="chart-container">
+{weekHistory.slice(-8).map((w, idx, arr) => {
+const vol = computeWeekVolume(w);
+const maxVol = Math.max.apply(null, arr.map(computeWeekVolume).concat([1]));
+const heightPct = Math.max((vol / maxVol) * 100, 4);
+return (
+<div className="chart-bar-wrap" key={idx}>
+<div className="chart-bar" style={{height: heightPct + '%'}} title={vol + ' kg'}></div>
+<div className="chart-label">{'S' + w.week}</div>
+</div>
+);
+})}
+</div>
+
+{weekHistory.slice().reverse().map((w, idx) => (
+<div className="history-week" key={idx}>
+<h3>{'Semaine ' + w.week + ' — ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
+<p style={{fontSize: '12px', color: '#764ba2', marginBottom: '8px'}}>{'Volume: ' + computeWeekVolume(w) + ' kg cumulés'}</p>
+{w.plan.days.map((day, dIdx) => (
+<p key={dIdx} style={{fontSize: '13px', color: '#666', marginBottom: '4px'}}>
+<strong>{day.day}</strong>{' (' + day.type + '): ' + day.exercises.map(e => e.name).join(', ')}
+</p>
+))}
+</div>
+))}
+</div>
+)}
+</div>
+)}
+</div>
+</div>
+);
+}
+
+ReactDOM.render(<FitCoachApp />, document.getElementById('root'));
+</script>
 </body>
 </html>
