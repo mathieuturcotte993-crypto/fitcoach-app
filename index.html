@@ -508,6 +508,145 @@ margin-bottom: 8px;
 font-size: 17px;
 }
 
+.section-title {
+font-family: 'Rajdhani', sans-serif;
+font-size: 16px;
+letter-spacing: 0.4px;
+color: var(--text);
+margin-bottom: 10px;
+font-weight: 700;
+}
+
+.dashboard-block {
+margin-bottom: 22px;
+padding-bottom: 18px;
+border-bottom: 1px solid var(--border);
+}
+
+.type-stats-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+gap: 10px;
+}
+
+.type-stat-card {
+background: linear-gradient(150deg, var(--orange) 0%, var(--orange-dark) 100%);
+color: #17120a;
+border-radius: 10px;
+padding: 13px 10px;
+text-align: center;
+box-shadow: 0 4px 14px rgba(255,122,26,0.2);
+}
+
+.type-stat-icon {
+font-size: 22px;
+margin-bottom: 4px;
+}
+
+.type-stat-name {
+font-size: 10.5px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.4px;
+opacity: 0.8;
+margin-bottom: 3px;
+}
+
+.type-stat-value {
+font-family: 'Rajdhani', sans-serif;
+font-size: 21px;
+font-weight: 700;
+line-height: 1.1;
+}
+
+.type-stat-sub {
+font-size: 11px;
+opacity: 0.85;
+margin-top: 2px;
+}
+
+.workout-card {
+background: var(--surface-2);
+border: 1px solid var(--border);
+border-left: 4px solid var(--orange);
+border-radius: 8px;
+padding: 12px 14px;
+margin-bottom: 10px;
+cursor: pointer;
+transition: border-color 0.2s, background 0.2s;
+}
+
+.workout-card:hover {
+border-left-color: var(--orange-light);
+background: var(--surface-3);
+}
+
+.workout-card-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-size: 14px;
+color: var(--text);
+gap: 8px;
+}
+
+.workout-card-header-left {
+display: flex;
+align-items: center;
+gap: 8px;
+overflow: hidden;
+}
+
+.workout-card-icon {
+font-size: 17px;
+}
+
+.workout-card-daytype {
+color: var(--orange-light);
+font-weight: 600;
+}
+
+.chevron {
+color: var(--orange-light);
+font-size: 13px;
+flex-shrink: 0;
+}
+
+.workout-card-summary {
+font-size: 12px;
+color: var(--text-dim);
+margin-top: 5px;
+}
+
+.workout-card-body {
+margin-top: 10px;
+padding-top: 10px;
+border-top: 1px solid var(--border);
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.workout-card-exercise-name {
+color: var(--text);
+font-weight: 600;
+font-size: 13px;
+margin-bottom: 2px;
+}
+
+.workout-card-exercise-detail {
+color: var(--text-dim);
+font-size: 12px;
+line-height: 1.4;
+}
+
+.workout-card-total {
+margin-top: 4px;
+font-size: 13px;
+color: var(--orange-light);
+font-weight: 700;
+}
+
 ::-webkit-scrollbar {
 width: 8px;
 }
@@ -538,6 +677,7 @@ const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('logs') |
 const [weekHistory, setWeekHistory] = useState(() => JSON.parse(localStorage.getItem('weekHistory') || '[]'));
 const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages') || '[]'));
 const [pendingPlanUpdate, setPendingPlanUpdate] = useState(() => JSON.parse(localStorage.getItem('pendingPlanUpdate') || 'null'));
+const [expandedWorkouts, setExpandedWorkouts] = useState({});
 const [chatInput, setChatInput] = useState('');
 const [loading, setLoading] = useState(false);
 const [message, setMessage] = useState('');
@@ -633,14 +773,104 @@ return null;
 }
 };
 
-const computeWeekVolume = (weekEntry) => {
-let total = 0;
-Object.values(weekEntry.logs || {}).forEach((log) => {
+const typeIcon = (type) => {
+const t = (type || '').toLowerCase();
+if (t.includes('muscu')) return '🏋️';
+if (t.includes('run') || t.includes('course')) return '🏃';
+if (t.includes('vélo') || t.includes('velo') || t.includes('cycl')) return '🚴';
+if (t.includes('cardio')) return '❤️';
+if (t.includes('crossfit') || t.includes('wod')) return '🔥';
+if (t.includes('rando') || t.includes('hike') || t.includes('marche')) return '🥾';
+return '💪';
+};
+
+const parseTimeToMinutes = (str) => {
+if (!str) return 0;
+const parts = String(str).split(':').map(p => parseFloat(p)).filter(n => !isNaN(n));
+if (parts.length === 0) {
+const n = parseFloat(str);
+return isNaN(n) ? 0 : n;
+}
+if (parts.length === 1) return parts[0];
+if (parts.length === 2) return parts[0] + parts[1] / 60;
+if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
+return 0;
+};
+
+const computeDayStats = (weekEntry, dayIdx, day) => {
+let volume = 0, distance = 0, timeMin = 0, loggedCount = 0;
+(day.exercises || []).forEach((ex, exIdx) => {
+const log = (weekEntry.logs || {})[dayIdx + '-' + exIdx];
+if (!log) return;
 const w = parseFloat(log.weight) || 0;
 const r = parseFloat(log.reps) || 0;
-total += w * r;
+if (w && r) volume += w * r;
+if (log.distance) distance += parseFloat(log.distance) || 0;
+if (log.time) timeMin += parseTimeToMinutes(log.time);
+if (Object.keys(log).length) loggedCount++;
 });
-return Math.round(total);
+return {
+volume: Math.round(volume),
+distance: Math.round(distance * 10) / 10,
+timeMin: Math.round(timeMin),
+loggedCount
+};
+};
+
+const computeWeekTotalVolume = (weekEntry) => {
+let total = 0;
+(weekEntry.plan.days || []).forEach((day, dayIdx) => {
+total += computeDayStats(weekEntry, dayIdx, day).volume;
+});
+return total;
+};
+
+const computeGlobalStatsByType = () => {
+const stats = {};
+weekHistory.forEach((weekEntry) => {
+(weekEntry.plan.days || []).forEach((day, dayIdx) => {
+const key = day.type || 'Autre';
+if (!stats[key]) stats[key] = { sessions: 0, volume: 0, distance: 0, timeMin: 0 };
+const dayStats = computeDayStats(weekEntry, dayIdx, day);
+stats[key].sessions += 1;
+stats[key].volume += dayStats.volume;
+stats[key].distance += dayStats.distance;
+stats[key].timeMin += dayStats.timeMin;
+});
+});
+return stats;
+};
+
+const primaryMetricText = (type, s) => {
+const t = (type || '').toLowerCase();
+if (t.includes('muscu')) return s.volume + ' kg';
+if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando') || t.includes('hike') || t.includes('marche')) {
+return s.distance + ' km';
+}
+if (t.includes('cardio')) return s.timeMin > 0 ? (s.timeMin + ' min') : (s.sessions + (s.sessions > 1 ? ' séances' : ' séance'));
+if (t.includes('crossfit') || t.includes('wod')) return s.sessions + (s.sessions > 1 ? ' WODs' : ' WOD');
+return s.sessions + (s.sessions > 1 ? ' séances' : ' séance');
+};
+
+const summaryLine = (day, stats) => {
+const t = (day.type || '').toLowerCase();
+if (t.includes('muscu') && stats.volume > 0) return stats.volume + ' kg soulevés au total';
+if ((t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) && stats.distance > 0) return stats.distance + ' km parcourus';
+if (t.includes('cardio') && stats.timeMin > 0) return stats.timeMin + ' min au total';
+if (stats.loggedCount > 0) return stats.loggedCount + ' exercice(s) enregistré(s)';
+return (day.exercises || []).length + ' exercice(s) au programme';
+};
+
+const totalLine = (day, stats) => {
+const t = (day.type || '').toLowerCase();
+if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' kg soulevés';
+if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) return typeIcon(day.type) + ' Total: ' + stats.distance + ' km';
+if (t.includes('cardio')) return '❤️ Total: ' + (stats.timeMin > 0 ? stats.timeMin + ' min' : 'N/A');
+return typeIcon(day.type) + ' Séance complétée';
+};
+
+const toggleWorkout = (key) => {
+setExpandedWorkouts(prev => ({ ...prev, [key]: !prev[key] }));
 };
 
 const generateWeekPlan = async () => {
@@ -792,6 +1022,10 @@ setMessage('');
 setCurrentTab('setup');
 };
 
+const globalStatsByType = computeGlobalStatsByType();
+const totalSessionsCompleted = weekHistory.reduce((sum, w) => sum + ((w.plan.days || []).length), 0);
+const totalVolumeAllTime = weekHistory.reduce((sum, w) => sum + computeWeekTotalVolume(w), 0);
+
 return (
 <div className="app">
 <div className="header">
@@ -835,6 +1069,32 @@ onClick={() => setCurrentTab('history')}
 
 {currentTab === 'setup' && (
 <div>
+{weekHistory.length > 0 && (
+<div className="dashboard-block">
+<h2 className="section-title">📊 Ton résumé</h2>
+<div className="stats">
+<div className="stat-card">
+<div className="value">{totalSessionsCompleted}</div>
+<div className="label">Séances complétées</div>
+</div>
+<div className="stat-card">
+<div className="value">{weekHistory.length}</div>
+<div className="label">Semaines terminées</div>
+</div>
+</div>
+<div className="type-stats-grid">
+{Object.entries(globalStatsByType).map(([type, s]) => (
+<div className="type-stat-card" key={type}>
+<div className="type-stat-icon">{typeIcon(type)}</div>
+<div className="type-stat-name">{type}</div>
+<div className="type-stat-value">{primaryMetricText(type, s)}</div>
+<div className="type-stat-sub">{s.sessions + (s.sessions > 1 ? ' séances' : ' séance')}</div>
+</div>
+))}
+</div>
+</div>
+)}
+
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>Configuration Initiale</h2>
 
 <div className="form-group">
@@ -1026,11 +1286,33 @@ Aucune semaine terminée pour l'instant. Complète ta semaine et clique sur "✅
 )}
 {weekHistory.length > 0 && (
 <div>
+<h3 className="section-title">Vue d'ensemble par activité</h3>
+<div className="stats">
+<div className="stat-card">
+<div className="value">{totalSessionsCompleted}</div>
+<div className="label">Séances complétées</div>
+</div>
+<div className="stat-card">
+<div className="value">{totalVolumeAllTime}</div>
+<div className="label">Kg soulevés au total</div>
+</div>
+</div>
+<div className="type-stats-grid" style={{marginBottom: '20px'}}>
+{Object.entries(globalStatsByType).map(([type, s]) => (
+<div className="type-stat-card" key={type}>
+<div className="type-stat-icon">{typeIcon(type)}</div>
+<div className="type-stat-name">{type}</div>
+<div className="type-stat-value">{primaryMetricText(type, s)}</div>
+<div className="type-stat-sub">{s.sessions + (s.sessions > 1 ? ' séances' : ' séance')}</div>
+</div>
+))}
+</div>
+
 <h3 style={{marginBottom: '10px', fontSize: '14px', color: 'var(--text-dim)'}}>Volume total (poids x reps) par semaine</h3>
 <div className="chart-container">
 {weekHistory.slice(-8).map((w, idx, arr) => {
-const vol = computeWeekVolume(w);
-const maxVol = Math.max.apply(null, arr.map(computeWeekVolume).concat([1]));
+const vol = computeWeekTotalVolume(w);
+const maxVol = Math.max.apply(null, arr.map(computeWeekTotalVolume).concat([1]));
 const heightPct = Math.max((vol / maxVol) * 100, 4);
 return (
 <div className="chart-bar-wrap" key={idx}>
@@ -1041,15 +1323,54 @@ return (
 })}
 </div>
 
-{weekHistory.slice().reverse().map((w, idx) => (
-<div className="history-week" key={idx}>
+<h3 className="section-title" style={{marginTop: '10px'}}>Détail des séances</h3>
+{weekHistory.slice().reverse().map((w, wIdx) => (
+<div className="history-week" key={wIdx}>
 <h3>{'Semaine ' + w.week + ' — ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
-<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '8px'}}>{'Volume: ' + computeWeekVolume(w) + ' kg cumulés'}</p>
-{w.plan.days.map((day, dIdx) => (
-<p key={dIdx} style={{fontSize: '13px', color: 'var(--text-dim)', marginBottom: '4px'}}>
-<strong style={{color: 'var(--text)'}}>{day.day}</strong>{' (' + day.type + '): ' + day.exercises.map(e => e.name).join(', ')}
-</p>
-))}
+<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume(w) + ' kg cumulés'}</p>
+{(w.plan.days || []).map((day, dayIdx) => {
+const cardKey = w.week + '-' + dayIdx;
+const stats = computeDayStats(w, dayIdx, day);
+const isOpen = !!expandedWorkouts[cardKey];
+return (
+<div className="workout-card" key={dayIdx} onClick={() => toggleWorkout(cardKey)}>
+<div className="workout-card-header">
+<div className="workout-card-header-left">
+<span className="workout-card-icon">{typeIcon(day.type)}</span>
+<span><strong>{day.day}</strong> <span className="workout-card-daytype">— {day.type}</span></span>
+</div>
+<span className="chevron">{isOpen ? '▾' : '▸'}</span>
+</div>
+<div className="workout-card-summary">{summaryLine(day, stats)}</div>
+{isOpen && (
+<div className="workout-card-body" onClick={(e) => e.stopPropagation()}>
+{(day.exercises || []).map((ex, exIdx) => {
+const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
+const hasLog = Object.keys(log).length > 0;
+return (
+<div key={exIdx}>
+<div className="workout-card-exercise-name">{ex.name}</div>
+<div className="workout-card-exercise-detail">
+{'Prévu: ' + ex.sets + ' x ' + ex.reps + (ex.weight ? (' @ ' + ex.weight) : '')}
+{hasLog && (
+<><br />
+{'Réalisé: '}
+{log.weight ? (log.weight + 'kg x ' + (log.reps || '?') + ' reps ') : ''}
+{log.distance ? (log.distance + 'km ') : ''}
+{log.time ? (log.time + ' ') : ''}
+{log.notes ? ('— "' + log.notes + '"') : ''}
+</>
+)}
+</div>
+</div>
+);
+})}
+<div className="workout-card-total">{totalLine(day, stats)}</div>
+</div>
+)}
+</div>
+);
+})}
 </div>
 ))}
 </div>
