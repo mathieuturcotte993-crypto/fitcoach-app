@@ -11,665 +11,278 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-}
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
---bg-0: #08080a;
---bg-1: #0f0f13;
---surface: #16161c;
---surface-2: #1c1c24;
---surface-3: #222229;
---border: #2a2a33;
---orange: #ff7a1a;
---orange-light: #ffab5e;
---orange-dark: #c9500a;
---text: #f2f2f4;
---text-dim: #9a9aa6;
---green: #4cd964;
---red: #ff5c5c;
+--bg-0: #08080a; --bg-1: #0f0f13; --surface: #16161c; --surface-2: #1c1c24; --surface-3: #222229;
+--border: #2a2a33; --orange: #ff7a1a; --orange-light: #ffab5e; --orange-dark: #c9500a;
+--text: #f2f2f4; --text-dim: #9a9aa6; --green: #4cd964; --red: #ff5c5c;
 }
-
 body {
 font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 background: radial-gradient(circle at 50% 0%, #1a1208 0%, var(--bg-0) 55%);
-background-attachment: fixed;
-min-height: 100vh;
-color: var(--text);
-padding: 10px;
+background-attachment: fixed; min-height: 100vh; color: var(--text); padding: 10px;
 }
-
 .app {
-max-width: 600px;
-margin: 0 auto;
-background: var(--bg-1);
-border: 1px solid var(--border);
-border-radius: 16px;
-box-shadow: 0 0 50px rgba(255,122,26,0.08), 0 20px 40px rgba(0,0,0,0.55);
+max-width: 600px; margin: 0 auto; background: var(--bg-1); border: 1px solid var(--border);
+border-radius: 16px; box-shadow: 0 0 50px rgba(255,122,26,0.08), 0 20px 40px rgba(0,0,0,0.55);
 overflow: hidden;
 }
-
 .header {
-background: linear-gradient(160deg, #1a1712 0%, #0c0c0f 70%);
-color: var(--text);
-padding: 26px 20px;
-text-align: center;
-border-bottom: 1px solid var(--border);
-position: relative;
+background: linear-gradient(160deg, #1a1712 0%, #0c0c0f 70%); color: var(--text); padding: 26px 20px;
+text-align: center; border-bottom: 1px solid var(--border); position: relative;
 }
-
 .header::after {
-content: '';
-position: absolute;
-left: 0; right: 0; bottom: -1px;
-height: 3px;
+content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
 background: linear-gradient(90deg, transparent, var(--orange), var(--orange-light), var(--orange), transparent);
 }
-
 .header h1 {
-font-family: 'Rajdhani', sans-serif;
-font-size: 32px;
-letter-spacing: 1px;
-font-weight: 700;
-margin-bottom: 4px;
-color: var(--text);
-text-shadow: 0 0 18px rgba(255,122,26,0.45);
+font-family: 'Rajdhani', sans-serif; font-size: 32px; letter-spacing: 1px; font-weight: 700;
+margin-bottom: 4px; color: var(--text); text-shadow: 0 0 18px rgba(255,122,26,0.45);
 }
-
-.header p {
-color: var(--text-dim);
-font-size: 13px;
-letter-spacing: 0.5px;
-}
-
-.content {
-padding: 20px;
-}
-
-.tab-buttons {
-display: flex;
-gap: 6px;
-margin-bottom: 20px;
-border-bottom: 1px solid var(--border);
-}
-
+.header p { color: var(--text-dim); font-size: 13px; letter-spacing: 0.5px; }
+.content { padding: 20px; }
+.tab-buttons { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .tab-btn {
-flex: 1;
-padding: 10px 4px;
-border: none;
-background: none;
-cursor: pointer;
-font-size: 12px;
-font-weight: 600;
-color: var(--text-dim);
-border-bottom: 3px solid transparent;
-transition: all 0.25s;
+flex: 1; padding: 10px 4px; border: none; background: none; cursor: pointer; font-size: 12px;
+font-weight: 600; color: var(--text-dim); border-bottom: 3px solid transparent; transition: all 0.25s;
 font-family: 'Poppins', sans-serif;
 }
-
-.tab-btn:hover {
-color: var(--orange-light);
-}
-
-.tab-btn.active {
-color: var(--orange);
-border-bottom-color: var(--orange);
-text-shadow: 0 0 12px rgba(255,122,26,0.35);
-}
-
-.form-group {
-margin-bottom: 15px;
-}
-
-label {
-display: block;
-margin-bottom: 5px;
-font-weight: 600;
-color: var(--text);
-font-size: 14px;
-}
-
+.tab-btn:hover { color: var(--orange-light); }
+.tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); text-shadow: 0 0 12px rgba(255,122,26,0.35); }
+.form-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text); font-size: 14px; }
 input, select, textarea {
-width: 100%;
-padding: 10px;
-border: 1px solid var(--border);
-border-radius: 8px;
-font-size: 14px;
-font-family: inherit;
-background: var(--surface-2);
-color: var(--text);
+width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+font-family: inherit; background: var(--surface-2); color: var(--text);
 }
-
-textarea {
-resize: vertical;
-min-height: 80px;
-}
-
-input::placeholder, textarea::placeholder {
-color: #6f6f7a;
-}
-
-input:focus, select:focus, textarea:focus {
-outline: none;
-border-color: var(--orange);
-box-shadow: 0 0 0 3px rgba(255,122,26,0.15);
-}
-
+textarea { resize: vertical; min-height: 80px; }
+input::placeholder, textarea::placeholder { color: #6f6f7a; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,26,0.15); }
 button {
-background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
-color: #17120a;
-padding: 12px 24px;
-border: none;
-border-radius: 8px;
-font-size: 14px;
-font-weight: 700;
-cursor: pointer;
-transition: transform 0.2s, box-shadow 0.2s;
-width: 100%;
-font-family: 'Poppins', sans-serif;
+background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a;
+padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+transition: transform 0.2s, box-shadow 0.2s; width: 100%; font-family: 'Poppins', sans-serif;
 box-shadow: 0 4px 16px rgba(255,122,26,0.3);
 }
-
-button:hover:not(:disabled) {
-transform: translateY(-2px);
-box-shadow: 0 6px 22px rgba(255,122,26,0.45);
-}
-
-button:active:not(:disabled) {
-transform: translateY(0);
-}
-
-button:disabled {
-opacity: 0.5;
-cursor: not-allowed;
-}
-
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(255,122,26,0.45); }
+button:active:not(:disabled) { transform: translateY(0); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary {
-background: var(--surface-2);
-color: var(--orange-light);
-border: 1px solid var(--orange-dark);
-box-shadow: none;
+background: var(--surface-2); color: var(--orange-light); border: 1px solid var(--orange-dark); box-shadow: none;
 }
-
-.btn-secondary:hover:not(:disabled) {
-background: var(--surface-3);
-box-shadow: 0 0 14px rgba(255,122,26,0.2);
-}
-
+.btn-secondary:hover:not(:disabled) { background: var(--surface-3); box-shadow: 0 0 14px rgba(255,122,26,0.2); }
 .workout-day {
-background: var(--surface);
-border: 1px solid var(--border);
-border-left: 4px solid var(--orange);
-padding: 15px;
-margin-bottom: 15px;
-border-radius: 10px;
+background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--orange);
+padding: 15px; margin-bottom: 15px; border-radius: 10px;
 }
-
-.workout-day h3 {
-font-family: 'Rajdhani', sans-serif;
-letter-spacing: 0.5px;
-color: var(--orange-light);
-margin-bottom: 8px;
-font-size: 18px;
+.workout-day h3 { font-family: 'Rajdhani', sans-serif; letter-spacing: 0.5px; color: var(--orange-light); margin-bottom: 8px; font-size: 18px; }
+.workout-day p { color: var(--text-dim); font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
+.exercise-log { background: var(--surface-2); border: 1px solid var(--border); padding: 15px; margin-bottom: 12px; border-radius: 8px; }
+.exercise-log h4 { color: var(--text); font-size: 14px; }
+.exercise-log-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; }
+.exercise-thumb {
+width: 52px; height: 52px; border-radius: 8px; overflow: hidden; background: var(--surface-3);
+border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-
-.workout-day p {
-color: var(--text-dim);
-font-size: 13px;
-line-height: 1.5;
-margin-bottom: 10px;
-}
-
-.exercise-log {
-background: var(--surface-2);
-border: 1px solid var(--border);
-padding: 15px;
-margin-bottom: 12px;
-border-radius: 8px;
-}
-
-.exercise-log h4 {
-color: var(--text);
-margin-bottom: 10px;
-font-size: 14px;
-}
-
-.log-inputs {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 10px;
-margin-bottom: 10px;
-}
-
-.log-inputs input {
-font-size: 13px;
-}
-
-.log-inputs textarea {
-grid-column: 1 / -1;
-min-height: 60px;
-}
-
-.message {
-padding: 12px;
-border-radius: 8px;
-margin-bottom: 15px;
-font-size: 13px;
-border: 1px solid transparent;
-}
-
-.message.info {
-background: rgba(255,122,26,0.08);
-color: var(--orange-light);
-border-left: 3px solid var(--orange);
-}
-
-.message.success {
-background: rgba(76,217,100,0.08);
-color: var(--green);
-border-left: 3px solid var(--green);
-}
-
-.message.error {
-background: rgba(255,92,92,0.08);
-color: var(--red);
-border-left: 3px solid var(--red);
-}
-
+.exercise-thumb img { width: 100%; height: 100%; object-fit: cover; background: #fff; }
+.exercise-thumb-fallback { font-size: 20px; }
+.exercise-info-hint { font-size: 10.5px; color: var(--orange-light); font-weight: 500; }
+.log-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.log-inputs input { font-size: 13px; }
+.log-inputs textarea { grid-column: 1 / -1; min-height: 60px; }
+.message { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid transparent; }
+.message.info { background: rgba(255,122,26,0.08); color: var(--orange-light); border-left: 3px solid var(--orange); }
+.message.success { background: rgba(76,217,100,0.08); color: var(--green); border-left: 3px solid var(--green); }
+.message.error { background: rgba(255,92,92,0.08); color: var(--red); border-left: 3px solid var(--red); }
 .chat-container {
-display: flex;
-flex-direction: column;
-height: 500px;
-border: 1px solid var(--border);
-border-radius: 10px;
-overflow: hidden;
-background: var(--bg-0);
+display: flex; flex-direction: column; height: 500px; border: 1px solid var(--border); border-radius: 10px;
+overflow: hidden; background: var(--bg-0);
 }
-
-.chat-messages {
-flex: 1;
-overflow-y: auto;
-padding: 15px;
-display: flex;
-flex-direction: column;
-gap: 10px;
-}
-
-.chat-message {
-padding: 10px 12px;
-border-radius: 8px;
-font-size: 13px;
-line-height: 1.4;
-max-width: 90%;
-white-space: pre-wrap;
-}
-
+.chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+.chat-message { padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; max-width: 90%; white-space: pre-wrap; }
 .chat-message.user {
-background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
-color: #17120a;
-font-weight: 500;
-align-self: flex-end;
-margin-left: 10%;
+background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a;
+font-weight: 500; align-self: flex-end; margin-left: 10%;
 }
-
-.chat-message.assistant {
-background: var(--surface-2);
-color: var(--text);
-border: 1px solid var(--border);
-align-self: flex-start;
-margin-right: 10%;
-}
-
-.chat-input-area {
-display: flex;
-gap: 8px;
-padding: 12px;
-border-top: 1px solid var(--border);
-background: var(--surface);
-}
-
-.chat-input-area input {
-flex: 1;
-margin: 0;
-font-size: 13px;
-}
-
-.chat-input-area button {
-flex: 0;
-padding: 8px 16px;
-width: auto;
-}
-
+.chat-message.assistant { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); align-self: flex-start; margin-right: 10%; }
+.chat-input-area { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--surface); }
+.chat-input-area input { flex: 1; margin: 0; font-size: 13px; }
+.chat-input-area button { flex: 0; padding: 8px 16px; width: auto; }
 .plan-update-card {
-background: rgba(255,122,26,0.06);
-border: 1px solid var(--orange-dark);
-border-radius: 8px;
-padding: 12px;
-margin: -2px 0 4px 0;
-box-shadow: 0 0 18px rgba(255,122,26,0.12);
-align-self: flex-start;
-max-width: 90%;
+background: rgba(255,122,26,0.06); border: 1px solid var(--orange-dark); border-radius: 8px; padding: 12px;
+margin: -2px 0 4px 0; box-shadow: 0 0 18px rgba(255,122,26,0.12); align-self: flex-start; max-width: 90%;
 }
-
-.plan-update-title {
-font-family: 'Rajdhani', sans-serif;
-color: var(--orange-light);
-font-weight: 700;
-font-size: 14px;
-letter-spacing: 0.3px;
-margin-bottom: 6px;
-}
-
-.plan-update-card p {
-font-size: 12px;
-color: var(--text-dim);
-margin-bottom: 10px;
-line-height: 1.4;
-}
-
-.plan-update-actions {
-display: flex;
-gap: 8px;
-}
-
-.btn-confirm {
-background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%);
-color: #17120a;
-flex: 1;
-padding: 8px;
-font-size: 12px;
-width: auto;
-box-shadow: none;
-}
-
-.btn-reject {
-background: var(--surface-3);
-color: var(--text-dim);
-border: 1px solid var(--border);
-flex: 1;
-padding: 8px;
-font-size: 12px;
-width: auto;
-box-shadow: none;
-}
-
-.loading {
-text-align: center;
-padding: 20px;
-color: var(--orange-light);
-font-weight: 600;
-}
-
+.plan-update-title { font-family: 'Rajdhani', sans-serif; color: var(--orange-light); font-weight: 700; font-size: 14px; letter-spacing: 0.3px; margin-bottom: 6px; }
+.plan-update-card p { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4; }
+.plan-update-actions { display: flex; gap: 8px; }
+.btn-confirm { background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a; flex: 1; padding: 8px; font-size: 12px; width: auto; box-shadow: none; }
+.btn-reject { background: var(--surface-3); color: var(--text-dim); border: 1px solid var(--border); flex: 1; padding: 8px; font-size: 12px; width: auto; box-shadow: none; }
+.loading { text-align: center; padding: 20px; color: var(--orange-light); font-weight: 600; }
 .spinner {
-display: inline-block;
-width: 20px;
-height: 20px;
-border: 3px solid rgba(255,122,26,0.15);
-border-top: 3px solid var(--orange);
-border-radius: 50%;
-animation: spin 1s linear infinite;
-margin-right: 10px;
+display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,122,26,0.15);
+border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px;
 }
-
-@keyframes spin {
-0% { transform: rotate(0deg); }
-100% { transform: rotate(360deg); }
-}
-
-.stats {
-display: grid;
-grid-template-columns: 1fr 1fr;
-gap: 12px;
-margin-bottom: 15px;
-}
-
-.stat-card {
-background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
-color: #17120a;
-padding: 15px;
-border-radius: 10px;
-text-align: center;
-}
-
-.stat-card .value {
-font-family: 'Rajdhani', sans-serif;
-font-size: 26px;
-font-weight: 700;
-margin-bottom: 5px;
-}
-
-.stat-card .label {
-font-size: 12px;
-opacity: 0.85;
-}
-
-.close-btn {
-background: var(--surface-2);
-color: var(--text);
-padding: 8px 12px;
-font-size: 12px;
-width: auto;
-margin-top: 10px;
-box-shadow: none;
-}
-
-.chart-container {
-display: flex;
-align-items: flex-end;
-gap: 8px;
-height: 150px;
-margin: 15px 0;
-padding: 10px;
-background: var(--surface);
-border: 1px solid var(--border);
-border-radius: 10px;
-}
-
-.chart-bar-wrap {
-flex: 1;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: flex-end;
-height: 100%;
-}
-
-.chart-bar {
-width: 100%;
-background: linear-gradient(180deg, var(--orange-light) 0%, var(--orange) 100%);
-border-radius: 4px 4px 0 0;
-min-height: 4px;
-box-shadow: 0 0 10px rgba(255,122,26,0.3);
-}
-
-.chart-label {
-font-size: 11px;
-color: var(--text-dim);
-margin-top: 4px;
-text-align: center;
-}
-
-.history-week {
-background: var(--surface);
-border: 1px solid var(--border);
-border-left: 4px solid var(--orange-light);
-padding: 15px;
-margin-bottom: 12px;
-border-radius: 10px;
-}
-
-.history-week h3 {
-font-family: 'Rajdhani', sans-serif;
-color: var(--orange-light);
-margin-bottom: 8px;
-font-size: 17px;
-}
-
-.section-title {
-font-family: 'Rajdhani', sans-serif;
-font-size: 16px;
-letter-spacing: 0.4px;
-color: var(--text);
-margin-bottom: 10px;
-font-weight: 700;
-}
-
-.dashboard-block {
-margin-bottom: 22px;
-padding-bottom: 18px;
-border-bottom: 1px solid var(--border);
-}
-
-.type-stats-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-gap: 10px;
-}
-
-.type-stat-card {
-background: linear-gradient(150deg, var(--orange) 0%, var(--orange-dark) 100%);
-color: #17120a;
-border-radius: 10px;
-padding: 13px 10px;
-text-align: center;
-box-shadow: 0 4px 14px rgba(255,122,26,0.2);
-}
-
-.type-stat-icon {
-font-size: 22px;
-margin-bottom: 4px;
-}
-
-.type-stat-name {
-font-size: 10.5px;
-font-weight: 700;
-text-transform: uppercase;
-letter-spacing: 0.4px;
-opacity: 0.8;
-margin-bottom: 3px;
-}
-
-.type-stat-value {
-font-family: 'Rajdhani', sans-serif;
-font-size: 21px;
-font-weight: 700;
-line-height: 1.1;
-}
-
-.type-stat-sub {
-font-size: 11px;
-opacity: 0.85;
-margin-top: 2px;
-}
-
-.workout-card {
-background: var(--surface-2);
-border: 1px solid var(--border);
-border-left: 4px solid var(--orange);
-border-radius: 8px;
-padding: 12px 14px;
-margin-bottom: 10px;
-cursor: pointer;
-transition: border-color 0.2s, background 0.2s;
-}
-
-.workout-card:hover {
-border-left-color: var(--orange-light);
-background: var(--surface-3);
-}
-
-.workout-card-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-font-size: 14px;
-color: var(--text);
-gap: 8px;
-}
-
-.workout-card-header-left {
-display: flex;
-align-items: center;
-gap: 8px;
-overflow: hidden;
-}
-
-.workout-card-icon {
-font-size: 17px;
-}
-
-.workout-card-daytype {
-color: var(--orange-light);
-font-weight: 600;
-}
-
-.chevron {
-color: var(--orange-light);
-font-size: 13px;
-flex-shrink: 0;
-}
-
-.workout-card-summary {
-font-size: 12px;
-color: var(--text-dim);
-margin-top: 5px;
-}
-
-.workout-card-body {
-margin-top: 10px;
-padding-top: 10px;
-border-top: 1px solid var(--border);
-display: flex;
-flex-direction: column;
-gap: 8px;
-}
-
-.workout-card-exercise-name {
-color: var(--text);
-font-weight: 600;
-font-size: 13px;
-margin-bottom: 2px;
-}
-
-.workout-card-exercise-detail {
-color: var(--text-dim);
-font-size: 12px;
-line-height: 1.4;
-}
-
-.workout-card-total {
-margin-top: 4px;
-font-size: 13px;
-color: var(--orange-light);
-font-weight: 700;
-}
-
-::-webkit-scrollbar {
-width: 8px;
-}
-::-webkit-scrollbar-track {
-background: var(--bg-0);
-}
-::-webkit-scrollbar-thumb {
-background: var(--orange-dark);
-border-radius: 4px;
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+.stat-card { background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%); color: #17120a; padding: 15px; border-radius: 10px; text-align: center; }
+.stat-card .value { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 5px; }
+.stat-card .label { font-size: 12px; opacity: 0.85; }
+.close-btn { background: var(--surface-2); color: var(--text); padding: 8px 12px; font-size: 12px; width: auto; margin-top: 10px; box-shadow: none; }
+.chart-container { display: flex; align-items: flex-end; gap: 8px; height: 150px; margin: 15px 0; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.chart-bar { width: 100%; background: linear-gradient(180deg, var(--orange-light) 0%, var(--orange) 100%); border-radius: 4px 4px 0 0; min-height: 4px; box-shadow: 0 0 10px rgba(255,122,26,0.3); }
+.chart-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; text-align: center; }
+.history-week { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--orange-light); padding: 15px; margin-bottom: 12px; border-radius: 10px; }
+.history-week-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+.history-week h3 { font-family: 'Rajdhani', sans-serif; color: var(--orange-light); font-size: 17px; }
+.section-title { font-family: 'Rajdhani', sans-serif; font-size: 16px; letter-spacing: 0.4px; color: var(--text); margin-bottom: 10px; font-weight: 700; }
+.dashboard-block { margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.type-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 10px; }
+.type-stat-card { background: linear-gradient(150deg, var(--orange) 0%, var(--orange-dark) 100%); color: #17120a; border-radius: 10px; padding: 13px 10px; text-align: center; box-shadow: 0 4px 14px rgba(255,122,26,0.2); }
+.type-stat-icon { font-size: 22px; margin-bottom: 4px; }
+.type-stat-name { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.8; margin-bottom: 3px; }
+.type-stat-value { font-family: 'Rajdhani', sans-serif; font-size: 21px; font-weight: 700; line-height: 1.1; }
+.type-stat-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+.workout-card { background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--orange); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.workout-card:hover { border-left-color: var(--orange-light); background: var(--surface-3); }
+.workout-card-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--text); gap: 8px; }
+.workout-card-header-left { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.workout-card-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.workout-card-icon { font-size: 17px; }
+.workout-card-daytype { color: var(--orange-light); font-weight: 600; }
+.chevron { color: var(--orange-light); font-size: 13px; flex-shrink: 0; }
+.workout-card-summary { font-size: 12px; color: var(--text-dim); margin-top: 5px; }
+.workout-card-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.history-exercise-row { display: flex; align-items: flex-start; gap: 8px; }
+.workout-card-exercise-name { color: var(--text); font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.workout-card-exercise-detail { color: var(--text-dim); font-size: 12px; line-height: 1.4; }
+.workout-card-total { margin-top: 4px; font-size: 13px; color: var(--orange-light); font-weight: 700; }
+.btn-delete-week { width: auto; padding: 6px 10px; background: var(--surface-2); border: 1px solid var(--red); color: var(--red); box-shadow: none; font-size: 12px; flex-shrink: 0; }
+.btn-delete-week:hover { background: rgba(255,92,92,0.1); transform: none; }
+.btn-delete-day { width: auto; padding: 2px 6px; background: transparent; border: none; box-shadow: none; font-size: 14px; color: var(--red); cursor: pointer; }
+.btn-delete-day:hover { transform: none; opacity: 0.7; }
+.btn-delete-exercise { width: auto; padding: 4px 8px; background: transparent; border: none; box-shadow: none; color: var(--red); font-size: 13px; cursor: pointer; flex-shrink: 0; }
+.btn-delete-exercise:hover { transform: none; opacity: 0.7; }
+.preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.preset-btn { width: auto; padding: 8px 12px; font-size: 12px; background: var(--surface-2); color: var(--orange-light); border: 1px solid var(--orange-dark); box-shadow: none; }
+.preset-btn:hover { background: var(--surface-3); box-shadow: 0 0 10px rgba(255,122,26,0.15); transform: none; }
+.equipment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 8px; }
+.equipment-chip { display: flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin: 0; }
+.equipment-chip input { width: auto; margin: 0; }
+.equipment-chip.checked { border-color: var(--orange); background: rgba(255,122,26,0.08); color: var(--orange-light); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal-box { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; max-width: 420px; width: 100%; padding: 18px; box-shadow: 0 0 60px rgba(255,122,26,0.15); max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+.modal-header h3 { font-family: 'Rajdhani', sans-serif; color: var(--orange-light); font-size: 19px; }
+.modal-close { width: auto; padding: 4px 10px; background: var(--surface-2); box-shadow: none; font-size: 14px; flex-shrink: 0; }
+.modal-media { width: 100%; height: 220px; border-radius: 10px; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; border: 1px solid var(--border); }
+.modal-media img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.modal-media-fallback { color: var(--text-dim); text-align: center; font-size: 14px; }
+.modal-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+.btn-video { display: block; text-align: center; background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--orange-dark); border-radius: 4px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
-
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
+
+const EQUIPMENT_CATALOG = [
+{ id: 'poids_corps', label: 'Poids du corps', icon: '🤸' },
+{ id: 'halteres', label: 'Haltères', icon: '🏋️' },
+{ id: 'kettlebell', label: 'Kettlebells', icon: '🔔' },
+{ id: 'barre_olympique', label: 'Barre olympique + poids', icon: '🏋️‍♂️' },
+{ id: 'rack_squat', label: 'Rack / Squat rack', icon: '🧱' },
+{ id: 'banc', label: 'Banc de musculation', icon: '🪑' },
+{ id: 'machines_guidees', label: 'Machines guidées', icon: '⚙️' },
+{ id: 'poulie_cable', label: 'Poulie / Câble', icon: '🔗' },
+{ id: 'bandes_resistance', label: 'Bandes de résistance', icon: '🎗️' },
+{ id: 'anneaux_trx', label: 'Anneaux / TRX', icon: '🤾' },
+{ id: 'barre_traction', label: 'Barre de traction', icon: '🧗' },
+{ id: 'corde_sesaut', label: 'Corde à sauter', icon: '🪢' },
+{ id: 'battle_rope', label: 'Corde ondulatoire', icon: '🌊' },
+{ id: 'box_plyo', label: 'Box de plyométrie', icon: '📦' },
+{ id: 'rameur', label: 'Rameur', icon: '🚣' },
+{ id: 'assault_bike', label: 'Vélo / Assault bike', icon: '🚴' },
+{ id: 'tapis_course', label: 'Tapis de course', icon: '🏃' },
+{ id: 'piscine', label: 'Piscine', icon: '🏊' },
+{ id: 'sac_frappe', label: 'Sac de frappe', icon: '🥊' }
+];
+
+const EQUIPMENT_PRESETS = [
+{ id: 'crossfit', label: '🔥 Salle de Crossfit (Box)', items: ['poids_corps','kettlebell','barre_olympique','anneaux_trx','barre_traction','corde_sesaut','battle_rope','box_plyo','rameur','assault_bike'] },
+{ id: 'muscu_standard', label: '🏋️ Musculation standard (type Éconofitness)', items: ['halteres','barre_olympique','rack_squat','banc','machines_guidees','poulie_cable','tapis_course','assault_bike'] },
+{ id: 'maison', label: '🏠 Maison (équipement léger)', items: ['halteres','bandes_resistance','banc','poids_corps'] },
+{ id: 'poids_corps_only', label: '🤸 Poids du corps uniquement', items: ['poids_corps'] }
+];
+
+const EXERCISE_IMAGE_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+
+const EXERCISE_LIBRARY = [
+{ keys: ['developpe couche','bench press','couche barre','developpe plat'], id: 'Barbell_Bench_Press_-_Medium_Grip', desc: "Allongé sur le banc, saisis la barre en prise pronation un peu plus large que les épaules. Descends-la de façon contrôlée jusqu'à effleurer la poitrine, puis pousse vers le haut en expirant, omoplates serrées et pieds ancrés au sol." },
+{ keys: ['developpe incline'], id: 'Barbell_Incline_Bench_Press_-_Medium_Grip', desc: "Sur un banc incliné, pousse la barre depuis la poitrine haute jusqu'à extension complète des bras, en gardant les coudes légèrement rentrés pour cibler le haut des pectoraux." },
+{ keys: ['squat'], id: 'Barbell_Full_Squat', desc: "Barre sur le haut du dos, pieds largeur d'épaules. Descends en poussant les hanches vers l'arrière, genoux alignés avec les orteils, jusqu'à ce que les cuisses soient parallèles au sol, puis remonte en poussant dans les talons." },
+{ keys: ['souleve de terre','deadlift'], id: 'Barbell_Deadlift', desc: "Pieds sous la barre, dos neutre, saisis la barre juste à l'extérieur des jambes. Pousse dans le sol avec les jambes pour redresser le buste, hanches et genoux se tendant en même temps." },
+{ keys: ['traction','pull-up','pullup','pull up'], id: 'Pullups', desc: "Suspendu à la barre en prise pronation, tire le corps vers le haut jusqu'à ce que le menton dépasse la barre en contractant le dos, puis redescends lentement sans te balancer." },
+{ keys: ['rowing barre','bent over row','tirage barre','rowing buste penche'], id: 'Bent_Over_Barbell_Row', desc: "Buste penché vers l'avant, dos droit, tire la barre vers le bas de l'abdomen en ramenant les coudes vers l'arrière, puis redescends lentement." },
+{ keys: ['developpe militaire','military press','developpe epaules'], id: 'Seated_Barbell_Military_Press', desc: "Assis ou debout, pousse la barre depuis les épaules jusqu'à l'extension complète des bras au-dessus de la tête, sans excès de cambrure dans le bas du dos." },
+{ keys: ['curl biceps','curl barre','biceps'], id: 'Barbell_Curl', desc: "Debout, coudes collés au corps, fléchis les avant-bras pour amener la barre vers les épaules, puis redescends lentement sans balancer le buste." },
+{ keys: ['extension triceps','triceps'], id: 'Triceps_Pushdown', desc: "À la poulie haute, coudes fixes près du corps, tends les avant-bras vers le bas jusqu'à extension complète, puis reviens lentement en contrôlant la charge." },
+{ keys: ['fente','lunge'], id: 'Barbell_Walking_Lunge', desc: "Fais un grand pas vers l'avant et descends jusqu'à ce que les deux genoux forment un angle de 90°, sans que le genou avant dépasse la pointe du pied, puis pousse pour avancer ou revenir." },
+{ keys: ['pompe','push-up','pushup','push up'], id: 'Pushups', desc: "Mains légèrement plus larges que les épaules, corps gainé en ligne droite. Descends la poitrine vers le sol en fléchissant les coudes, puis repousse jusqu'à l'extension des bras." },
+{ keys: ['planche','plank','gainage'], id: 'Plank', desc: "Appuie-toi sur les avant-bras et les orteils, corps aligné de la tête aux pieds, abdominaux contractés. Maintiens la position sans laisser tomber les hanches." },
+{ keys: ['presse a cuisses','leg press'], id: 'Leg_Press', desc: "Assis sur la machine, pieds à largeur d'épaules sur la plateforme. Fléchis les genoux pour descendre la charge puis pousse dans les talons pour revenir en extension, sans verrouiller les genoux." },
+{ keys: ['mollet','calf raise'], id: 'Standing_Calf_Raises', desc: "Debout, monte sur la pointe des pieds en contractant les mollets, marque une pause en haut puis redescends lentement sous le niveau de départ." },
+{ keys: ['tirage vertical','lat pulldown'], id: 'Wide-Grip_Lat_Pulldown', desc: "Assis face à la poulie haute, saisis la barre en prise large. Tire la barre vers le haut de la poitrine en ramenant les coudes vers le bas, puis remonte lentement." },
+{ keys: ['tirage horizontal','rowing poulie','seated row','tirage assis'], id: 'Seated_Cable_Rows', desc: "Assis, jambes légèrement fléchies, tire la poignée vers l'abdomen en ramenant les omoplates vers l'arrière, puis reviens lentement en gardant le dos droit." },
+{ keys: ['elevation laterale','lateral raise'], id: 'Side_Lateral_Raise', desc: "Debout, haltères le long du corps, lève les bras sur les côtés jusqu'à hauteur d'épaules avec une légère flexion des coudes, puis redescends lentement." },
+{ keys: ['dips'], id: 'Dips_-_Triceps_Version', desc: "En appui sur des barres parallèles, descends le corps en fléchissant les coudes près du corps, puis repousse jusqu'à l'extension complète des bras." },
+{ keys: ['burpee'], id: null, desc: "Depuis la position debout, accroupis-toi, place les mains au sol et envoie les jambes en arrière pour une position de planche. Fais une pompe optionnelle, ramène les pieds vers les mains puis saute verticalement en levant les bras." },
+{ keys: ['mountain climber','grimpeur'], id: 'Mountain_Climbers', desc: "En position de planche haute, ramène rapidement un genou vers la poitrine puis alterne avec l'autre jambe, comme si tu courais à l'horizontale, bassin stable." },
+{ keys: ['jumping jack'], id: null, desc: "Saute en écartant simultanément les jambes et en levant les bras au-dessus de la tête, puis reviens à la position de départ en sautant à nouveau, sur la pointe des pieds." },
+{ keys: ['kettlebell swing','swing kettlebell'], id: 'One-Arm_Kettlebell_Swings', desc: "Kettlebell entre les jambes, hanche vers l'arrière puis extension explosive des hanches pour propulser le poids jusqu'à hauteur d'épaules, bras tendus. La puissance vient des hanches." },
+{ keys: ['box jump','saut sur box','saut boite'], id: 'Front_Box_Jump', desc: "Fléchis légèrement les genoux puis saute des deux pieds sur la box en te réceptionnant en douceur, genoux fléchis. Redescends en marchant pour préserver les articulations." },
+{ keys: ['thruster'], id: 'Kettlebell_Thruster', desc: "Combine un squat avant et un développé militaire: descends en squat en tenant la charge aux épaules, puis en remontant enchaîne directement une poussée des bras au-dessus de la tête." },
+{ keys: ['epaule-jete','epaule jete','clean and jerk','clean'], id: 'Clean_and_Jerk', desc: "Mouvement olympique en deux temps: tire la barre du sol jusqu'aux épaules en position de squat (épaulé), puis pousse la barre au-dessus de la tête en fendant légèrement les jambes (jeté)." },
+{ keys: ['arrache','snatch'], id: 'Hang_Snatch', desc: "Depuis une position suspendue, tire la barre en une seule extension explosive des hanches et des jambes pour l'amener directement au-dessus de la tête, réceptionnée en squat." },
+{ keys: ['corde a sauter','jump rope','double under'], id: null, desc: "Fais tourner la corde avec les poignets et saute juste assez haut pour la laisser passer sous tes pieds. Reste sur la pointe des pieds avec un rythme régulier et léger." },
+{ keys: ['rameur','rowing machine','rowing (machine)','ergometre'], id: 'Rowing_Stationary', desc: "Pousse avec les jambes, puis penche légèrement le buste vers l'arrière et enfin tire la poignée vers le bas des côtes. Reviens dans l'ordre inverse: bras, buste, jambes." },
+{ keys: ['sit-up','sit up'], id: '3_4_Sit-Up', desc: "Allongé sur le dos, genoux fléchis, mains derrière la tête. Enroule le buste vers les genoux en contractant les abdominaux, puis redescends sans reposer complètement la tête au sol." },
+{ keys: ['crunch'], id: 'Crunches', desc: "Allongé, genoux fléchis, décolle uniquement le haut du dos du sol en contractant les abdominaux, sans tirer sur la nuque, puis redescends lentement." },
+{ keys: ['russian twist','rotation russe'], id: 'Russian_Twist', desc: "Assis, buste légèrement incliné vers l'arrière, pieds levés ou au sol. Fais pivoter le buste d'un côté à l'autre en touchant le sol de chaque côté." },
+{ keys: ['hip thrust'], id: 'Barbell_Hip_Thrust', desc: "Dos calé contre un banc, barre sur les hanches, pousse le bassin vers le haut en contractant les fessiers jusqu'à l'alignement genoux-hanches-épaules, puis redescends." },
+{ keys: ['good morning'], id: 'Good_Morning', desc: "Barre sur le haut du dos, jambes légèrement fléchies, penche le buste vers l'avant en gardant le dos plat, jusqu'à sentir l'étirement des ischio-jambiers, puis redresse-toi." },
+{ keys: ['marche du fermier','farmer'], id: 'Farmers_Walk', desc: "Saisis une charge lourde dans chaque main et marche en gardant le dos droit, les épaules basses et l'abdomen gainé sur la distance ou le temps prévu." },
+{ keys: ['step-up','step up'], id: 'Step-up_with_Knee_Raise', desc: "Pose un pied sur une plateforme surélevée et pousse à travers ce pied pour monter tout le corps, en amenant le genou opposé vers le haut, puis redescends avec contrôle." },
+{ keys: ['wall ball'], id: null, desc: "Tiens un ballon lesté contre la poitrine, descends en squat complet puis, en remontant, projette le ballon vers une cible en hauteur sur le mur avant de le rattraper." },
+{ keys: ['corde ondulatoire','battle rope'], id: null, desc: "Tiens une extrémité de corde dans chaque main, genoux fléchis, et crée des vagues alternées ou simultanées en gardant le tronc gainé tout au long de l'effort." }
+];
+
+const normalizeText = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const getExerciseInfo = (name) => {
+const n = normalizeText(name);
+return EXERCISE_LIBRARY.find(e => e.keys.some(k => n.includes(k))) || null;
+};
 
 function FitCoachApp() {
 const [currentTab, setCurrentTab] = useState('setup');
 const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
 const [userLevel, setUserLevel] = useState(() => localStorage.getItem('userLevel') || 'intermediate');
-const [userEquipment, setUserEquipment] = useState(() => localStorage.getItem('userEquipment') || 'complet');
+const [userEquipmentList, setUserEquipmentList] = useState(() => {
+const saved = localStorage.getItem('userEquipmentList');
+if (saved) {
+try { const parsed = JSON.parse(saved); if (Array.isArray(parsed)) return parsed; } catch (e) {}
+}
+const old = localStorage.getItem('userEquipment');
+const preset = (id) => (EQUIPMENT_PRESETS.find(p => p.id === id) || {}).items || [];
+if (old === 'halteres') return preset('maison');
+if (old === 'poids_corps') return ['poids_corps'];
+return preset('muscu_standard');
+});
 const [userGoals, setUserGoals] = useState(() => localStorage.getItem('userGoals') || '');
 const [currentWeekPlan, setCurrentWeekPlan] = useState(() => JSON.parse(localStorage.getItem('weekPlan') || 'null'));
 const [weekNumber, setWeekNumber] = useState(() => parseInt(localStorage.getItem('weekNumber') || '1'));
@@ -681,90 +294,62 @@ const [expandedWorkouts, setExpandedWorkouts] = useState({});
 const [chatInput, setChatInput] = useState('');
 const [loading, setLoading] = useState(false);
 const [message, setMessage] = useState('');
+const [exerciseModal, setExerciseModal] = useState(null);
+const [modalFrame, setModalFrame] = useState(0);
 const chatEndRef = useRef(null);
-
-const equipmentLabels = {
-complet: 'Salle de sport complète (Econofitness, équipement standard)',
-halteres: 'Haltères seulement (entraînement à la maison)',
-poids_corps: 'Poids du corps uniquement (aucun équipement)'
-};
 
 useEffect(() => {
 chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
 }, [chatMessages, pendingPlanUpdate]);
 
+useEffect(() => { localStorage.setItem('apiKey', apiKey); }, [apiKey]);
+useEffect(() => { localStorage.setItem('userLevel', userLevel); }, [userLevel]);
+useEffect(() => { localStorage.setItem('userEquipmentList', JSON.stringify(userEquipmentList)); }, [userEquipmentList]);
+useEffect(() => { localStorage.setItem('userGoals', userGoals); }, [userGoals]);
 useEffect(() => {
-localStorage.setItem('apiKey', apiKey);
-}, [apiKey]);
-
-useEffect(() => {
-localStorage.setItem('userLevel', userLevel);
-}, [userLevel]);
-
-useEffect(() => {
-localStorage.setItem('userEquipment', userEquipment);
-}, [userEquipment]);
-
-useEffect(() => {
-localStorage.setItem('userGoals', userGoals);
-}, [userGoals]);
-
-useEffect(() => {
-if (currentWeekPlan) {
-localStorage.setItem('weekPlan', JSON.stringify(currentWeekPlan));
-} else {
-localStorage.removeItem('weekPlan');
-}
+if (currentWeekPlan) { localStorage.setItem('weekPlan', JSON.stringify(currentWeekPlan)); }
+else { localStorage.removeItem('weekPlan'); }
 }, [currentWeekPlan]);
-
+useEffect(() => { localStorage.setItem('weekNumber', weekNumber); }, [weekNumber]);
+useEffect(() => { localStorage.setItem('logs', JSON.stringify(logs)); }, [logs]);
+useEffect(() => { localStorage.setItem('weekHistory', JSON.stringify(weekHistory)); }, [weekHistory]);
+useEffect(() => { localStorage.setItem('chatMessages', JSON.stringify(chatMessages)); }, [chatMessages]);
 useEffect(() => {
-localStorage.setItem('weekNumber', weekNumber);
-}, [weekNumber]);
-
-useEffect(() => {
-localStorage.setItem('logs', JSON.stringify(logs));
-}, [logs]);
-
-useEffect(() => {
-localStorage.setItem('weekHistory', JSON.stringify(weekHistory));
-}, [weekHistory]);
-
-useEffect(() => {
-localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
-}, [chatMessages]);
-
-useEffect(() => {
-if (pendingPlanUpdate) {
-localStorage.setItem('pendingPlanUpdate', JSON.stringify(pendingPlanUpdate));
-} else {
-localStorage.removeItem('pendingPlanUpdate');
-}
+if (pendingPlanUpdate) { localStorage.setItem('pendingPlanUpdate', JSON.stringify(pendingPlanUpdate)); }
+else { localStorage.removeItem('pendingPlanUpdate'); }
 }, [pendingPlanUpdate]);
+
+useEffect(() => {
+if (!exerciseModal) return;
+setModalFrame(0);
+const interval = setInterval(() => setModalFrame(f => (f === 0 ? 1 : 0)), 900);
+return () => clearInterval(interval);
+}, [exerciseModal]);
+
+const toggleEquipmentItem = (id) => {
+setUserEquipmentList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+};
+
+const equipmentDescriptionText = () => {
+if (!userEquipmentList.length) return "Aucun équipement précisé (prévois des exercices au poids du corps)";
+return userEquipmentList.map(id => (EQUIPMENT_CATALOG.find(e => e.id === id) || {}).label).filter(Boolean).join(', ');
+};
 
 const callClaudeAPI = async (messages, system) => {
 if (!apiKey) {
-setMessage('Erreur: Veuillez configurer votre clé API Claude d\'abord');
+setMessage("Erreur: Veuillez configurer votre clé API Claude d'abord");
 return null;
 }
-
 try {
 const response = await fetch('/api/claude', {
 method: 'POST',
-headers: {
-'Content-Type': 'application/json',
-},
-body: JSON.stringify({
-apiKey: apiKey,
-messages: messages,
-system: system
-})
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ apiKey: apiKey, messages: messages, system: system })
 });
-
 if (!response.ok) {
 const error = await response.json();
 throw new Error(error.error || 'Erreur API');
 }
-
 const data = await response.json();
 return data.content;
 } catch (error) {
@@ -878,9 +463,13 @@ if (!apiKey) {
 setMessage('Erreur: Clé API manquante');
 return;
 }
+if (!userEquipmentList.length) {
+setMessage("Erreur: Sélectionne au moins un équipement disponible dans la configuration");
+return;
+}
 
 setLoading(true);
-setMessage('Génération de votre plan d\'entraînement...');
+setMessage("Génération de votre plan d'entraînement...");
 
 const lastWeek = weekHistory[weekHistory.length - 1];
 let progressionNote = '';
@@ -905,11 +494,11 @@ progressionNote = '\nDonnées réelles enregistrées la semaine ' + lastWeek.wee
 }
 }
 
-const prompt = 'Crée un plan d\'entraînement complet pour une semaine (5 séances) pour quelqu\'un:\n' +
+const prompt = "Crée un plan d'entraînement complet pour une semaine (5 séances) pour quelqu'un:\n" +
 '- Niveau: ' + userLevel + '\n' +
 '- Objectifs: ' + userGoals + '\n' +
-'- Équipement: ' + equipmentLabels[userEquipment] + '\n' +
-'- Types d\'entraînement à varier: Musculation, Running, Crossfit, Cardio, Vélo, Randonnée' + progressionNote + '\n\n' +
+'- Équipement disponible: ' + equipmentDescriptionText() + '\n' +
+"- Types d'entraînement à varier: Musculation, Running, Crossfit, Cardio, Vélo, Randonnée" + progressionNote + '\n\n' +
 'Format de réponse (JSON uniquement, sans texte):\n' +
 '{\n' +
 '"week": ' + weekNumber + ',\n' +
@@ -921,7 +510,7 @@ const prompt = 'Crée un plan d\'entraînement complet pour une semaine (5 séan
 '{"day": "Vendredi", "type": "Vélo", "exercises": [{"name": "Séance vélo", "sets": "1", "reps": "N/A", "weight": "Distance: 20km"}]}\n' +
 ']\n' +
 '}\n\n' +
-'Adapte les exercices à l\'équipement disponible. Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.';
+"Adapte STRICTEMENT les exercices à l'équipement disponible listé ci-dessus (n'utilise jamais un équipement qui n'est pas dans la liste). Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.";
 
 const result = await callClaudeAPI([{ role: 'user', content: prompt }]);
 
@@ -944,10 +533,7 @@ setLoading(false);
 
 const logExercise = (dayIndex, exerciseIndex, data) => {
 const key = dayIndex + '-' + exerciseIndex;
-setLogs(prev => ({
-...prev,
-[key]: { ...prev[key], ...data }
-}));
+setLogs(prev => ({ ...prev, [key]: { ...prev[key], ...data } }));
 };
 
 const sendChatMessage = async () => {
@@ -960,10 +546,10 @@ setChatMessages(updatedMessages);
 
 setLoading(true);
 
-let system = 'Tu es un coach sportif IA personnalisé et bienveillant pour l\'app FitCoach. Contexte de l\'utilisateur: niveau ' + userLevel + ', objectifs: "' + (userGoals || 'non précisés') + '", équipement disponible: ' + equipmentLabels[userEquipment] + ', semaine d\'entraînement actuelle: ' + weekNumber + '. Utilise ce contexte pour donner des conseils personnalisés, concis et pratiques.';
+let system = "Tu es un coach sportif IA personnalisé et bienveillant pour l'app FitCoach. Contexte de l'utilisateur: niveau " + userLevel + ', objectifs: "' + (userGoals || 'non précisés') + '", équipement disponible: ' + equipmentDescriptionText() + ", semaine d'entraînement actuelle: " + weekNumber + '. Utilise ce contexte pour donner des conseils personnalisés, concis et pratiques.';
 
 if (currentWeekPlan) {
-system += '\n\nVoici le plan d\'entraînement actuel de la semaine, au format JSON: ' + JSON.stringify(currentWeekPlan) + '\n\nSi, au fil de la discussion, tu identifies qu\'une modification concrète de ce plan serait pertinente (ajouter/retirer/remplacer un exercice, changer les séries, répétitions, poids, ou le type d\'une séance, etc.), tu peux la proposer activement. Dans ce cas: 1) Explique clairement en langage normal quel changement tu proposes et pourquoi. 2) Demande explicitement la confirmation de l\'utilisateur avant d\'appliquer quoi que ce soit (tu ne dois JAMAIS appliquer un changement toi-même). 3) À la toute fin de ta réponse uniquement si tu proposes réellement un changement concret, ajoute ce bloc exact contenant le plan COMPLET mis à jour (tous les jours et exercices, modifiés ou non), au format JSON valide strictement identique à la structure fournie: [PLAN_UPDATE_JSON]{...plan complet ici...}[/PLAN_UPDATE_JSON]. N\'inclus ce bloc que si un changement concret est proposé, jamais pour un simple conseil général. Ne mentionne jamais ce bloc technique à l\'utilisateur, contente-toi de poser ta question de confirmation normalement en texte.';
+system += "\n\nVoici le plan d'entraînement actuel de la semaine, au format JSON: " + JSON.stringify(currentWeekPlan) + "\n\nSi, au fil de la discussion, tu identifies qu'une modification concrète de ce plan serait pertinente (ajouter/retirer/remplacer un exercice, changer les séries, répétitions, poids, ou le type d'une séance, etc.), tu peux la proposer activement. Dans ce cas: 1) Explique clairement en langage normal quel changement tu proposes et pourquoi. 2) Demande explicitement la confirmation de l'utilisateur avant d'appliquer quoi que ce soit (tu ne dois JAMAIS appliquer un changement toi-même). 3) À la toute fin de ta réponse uniquement si tu proposes réellement un changement concret, ajoute ce bloc exact contenant le plan COMPLET mis à jour (tous les jours et exercices, modifiés ou non), au format JSON valide strictement identique à la structure fournie: [PLAN_UPDATE_JSON]{...plan complet ici...}[/PLAN_UPDATE_JSON]. N'inclus ce bloc que si un changement concret est proposé, jamais pour un simple conseil général. Ne mentionne jamais ce bloc technique à l'utilisateur, contente-toi de poser ta question de confirmation normalement en texte.";
 }
 
 const apiMessages = updatedMessages.slice(-12).map(m => ({ role: m.role, content: m.content }));
@@ -1001,7 +587,7 @@ if (!pendingPlanUpdate) return;
 setCurrentWeekPlan(pendingPlanUpdate.plan);
 setWeekNumber(pendingPlanUpdate.plan.week || weekNumber);
 setLogs({});
-setChatMessages(prev => [...prev, { role: 'assistant', content: '✅ C\'est fait, ton plan d\'entraînement a été mis à jour !' }]);
+setChatMessages(prev => [...prev, { role: 'assistant', content: "✅ C'est fait, ton plan d'entraînement a été mis à jour !" }]);
 setPendingPlanUpdate(null);
 setMessage('✅ Plan mis à jour par le coach IA');
 };
@@ -1022,9 +608,44 @@ setMessage('');
 setCurrentTab('setup');
 };
 
+const deleteWeekEntry = (idx) => {
+const w = weekHistory[idx];
+if (!w) return;
+if (!window.confirm('Supprimer définitivement cet entraînement (semaine ' + w.week + ') de ton historique ? Cette action est irréversible.')) return;
+setWeekHistory(prev => prev.filter((_, i) => i !== idx));
+};
+
+const deleteDayFromWeek = (weekIdx, dayIdx) => {
+if (!window.confirm('Supprimer cette séance de ton historique ? Cette action est irréversible.')) return;
+setWeekHistory(prev => prev.map((w, i) => {
+if (i !== weekIdx) return w;
+const newDays = (w.plan.days || []).filter((_, di) => di !== dayIdx);
+const newLogs = {};
+Object.entries(w.logs || {}).forEach(([key, val]) => {
+const parts = key.split('-').map(Number);
+const d = parts[0], e = parts[1];
+if (d === dayIdx) return;
+const newD = d > dayIdx ? d - 1 : d;
+newLogs[newD + '-' + e] = val;
+});
+return { ...w, plan: { ...w.plan, days: newDays }, logs: newLogs };
+}));
+};
+
+const deleteExerciseLog = (weekIdx, dayIdx, exIdx) => {
+if (!window.confirm('Supprimer les données de cet exercice complété ? Cette action est irréversible.')) return;
+setWeekHistory(prev => prev.map((w, i) => {
+if (i !== weekIdx) return w;
+const newLogs = { ...(w.logs || {}) };
+delete newLogs[dayIdx + '-' + exIdx];
+return { ...w, logs: newLogs };
+}));
+};
+
 const globalStatsByType = computeGlobalStatsByType();
 const totalSessionsCompleted = weekHistory.reduce((sum, w) => sum + ((w.plan.days || []).length), 0);
 const totalVolumeAllTime = weekHistory.reduce((sum, w) => sum + computeWeekTotalVolume(w), 0);
+const reversedHistory = weekHistory.map((w, i) => ({ entry: w, idx: i })).slice().reverse();
 
 return (
 <div className="app">
@@ -1035,30 +656,10 @@ return (
 
 <div className="content">
 <div className="tab-buttons">
-<button
-className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')}
-onClick={() => setCurrentTab('setup')}
->
-⚙️ Config
-</button>
-<button
-className={'tab-btn ' + (currentTab === 'plan' ? 'active' : '')}
-onClick={() => setCurrentTab('plan')}
->
-📅 Plan
-</button>
-<button
-className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')}
-onClick={() => setCurrentTab('chat')}
->
-💬 Coach IA
-</button>
-<button
-className={'tab-btn ' + (currentTab === 'history' ? 'active' : '')}
-onClick={() => setCurrentTab('history')}
->
-📈 Historique
-</button>
+<button className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')} onClick={() => setCurrentTab('setup')}>⚙️ Config</button>
+<button className={'tab-btn ' + (currentTab === 'plan' ? 'active' : '')} onClick={() => setCurrentTab('plan')}>📅 Plan</button>
+<button className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')} onClick={() => setCurrentTab('chat')}>💬 Coach IA</button>
+<button className={'tab-btn ' + (currentTab === 'history' ? 'active' : '')} onClick={() => setCurrentTab('history')}>📈 Historique</button>
 </div>
 
 {message && (
@@ -1099,15 +700,8 @@ onClick={() => setCurrentTab('history')}
 
 <div className="form-group">
 <label>🔑 Clé API Claude</label>
-<input
-type="password"
-value={apiKey}
-onChange={(e) => setApiKey(e.target.value)}
-placeholder="sk-ant-..."
-/>
-<small style={{color: 'var(--text-dim)', marginTop: '5px', display: 'block'}}>
-👉 Obtenez votre clé sur console.anthropic.com
-</small>
+<input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-ant-..." />
+<small style={{color: 'var(--text-dim)', marginTop: '5px', display: 'block'}}>👉 Obtenez votre clé sur console.anthropic.com</small>
 </div>
 
 <div className="form-group">
@@ -1120,32 +714,32 @@ placeholder="sk-ant-..."
 </div>
 
 <div className="form-group">
-<label>🏋️ Équipement Disponible</label>
-<select value={userEquipment} onChange={(e) => setUserEquipment(e.target.value)}>
-<option value="complet">Salle de sport complète</option>
-<option value="halteres">Haltères seulement</option>
-<option value="poids_corps">Poids du corps uniquement</option>
-</select>
+<label>🏋️ Équipement Disponible (sélection multiple)</label>
+<div className="preset-row">
+{EQUIPMENT_PRESETS.map(p => (
+<button type="button" key={p.id} className="preset-btn" onClick={() => setUserEquipmentList(p.items)}>{p.label}</button>
+))}
+</div>
+<div className="equipment-grid">
+{EQUIPMENT_CATALOG.map(eq => (
+<label key={eq.id} className={'equipment-chip ' + (userEquipmentList.includes(eq.id) ? 'checked' : '')}>
+<input type="checkbox" checked={userEquipmentList.includes(eq.id)} onChange={() => toggleEquipmentItem(eq.id)} />
+<span>{eq.icon} {eq.label}</span>
+</label>
+))}
+</div>
+{userEquipmentList.length === 0 && (
+<small style={{color: 'var(--red)', display: 'block', marginTop: '8px'}}>Sélectionne au moins un équipement disponible.</small>
+)}
 </div>
 
 <div className="form-group">
 <label>🎯 Vos Objectifs</label>
-<textarea
-value={userGoals}
-onChange={(e) => setUserGoals(e.target.value)}
-placeholder="Ex: Me préparer pour mon Hyrox du 19 septembre, prendre du muscle..."
-/>
+<textarea value={userGoals} onChange={(e) => setUserGoals(e.target.value)} placeholder="Ex: Me préparer pour mon Hyrox du 19 septembre, prendre du muscle..." />
 </div>
 
 <button onClick={generateWeekPlan} disabled={loading}>
-{loading ? (
-<>
-<span className="spinner"></span>
-Génération...
-</>
-) : (
-'🚀 Générer Plan Semaine ' + weekNumber
-)}
+{loading ? (<><span className="spinner"></span>Génération...</>) : ('🚀 Générer Plan Semaine ' + weekNumber)}
 </button>
 </div>
 )}
@@ -1154,9 +748,7 @@ Génération...
 <div>
 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
 <h2 style={{color: 'var(--text)'}}>Semaine {currentWeekPlan.week}</h2>
-<button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 16px'}}>
-✅ Terminer la semaine
-</button>
+<button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 16px'}}>✅ Terminer la semaine</button>
 </div>
 
 {currentWeekPlan.days.map((day, dayIdx) => (
@@ -1166,44 +758,30 @@ Génération...
 {day.exercises.map((ex, exIdx) => {
 const logKey = dayIdx + '-' + exIdx;
 const logged = logs[logKey] || {};
+const info = getExerciseInfo(ex.name);
 
 return (
 <div key={exIdx} className="exercise-log">
-<h4>{ex.name}</h4>
+<div className="exercise-log-header" onClick={() => setExerciseModal({ name: ex.name })}>
+<div className="exercise-thumb">
+{info && info.id ? (
+<img src={EXERCISE_IMAGE_BASE + info.id + '/0.jpg'} alt={ex.name} onError={(e) => { e.target.style.display = 'none'; }} />
+) : (
+<span className="exercise-thumb-fallback">🎥</span>
+)}
+</div>
+<h4>{ex.name}<br /><span className="exercise-info-hint">ℹ️ Voir démo &amp; vidéo</span></h4>
+</div>
 <p style={{marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)'}}>
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
 
 <div className="log-inputs">
-<input
-type="number"
-placeholder="Poids (kg)"
-value={logged.weight || ''}
-onChange={(e) => logExercise(dayIdx, exIdx, {weight: e.target.value})}
-/>
-<input
-type="number"
-placeholder="Reps"
-value={logged.reps || ''}
-onChange={(e) => logExercise(dayIdx, exIdx, {reps: e.target.value})}
-/>
-<input
-type="number"
-placeholder="Distance (km)"
-value={logged.distance || ''}
-onChange={(e) => logExercise(dayIdx, exIdx, {distance: e.target.value})}
-/>
-<input
-type="text"
-placeholder="Temps (ex: 30:45)"
-value={logged.time || ''}
-onChange={(e) => logExercise(dayIdx, exIdx, {time: e.target.value})}
-/>
-<textarea
-placeholder="Notes (sensation, difficulté...)"
-value={logged.notes || ''}
-onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})}
-/>
+<input type="number" placeholder="Poids (kg)" value={logged.weight || ''} onChange={(e) => logExercise(dayIdx, exIdx, {weight: e.target.value})} />
+<input type="number" placeholder="Reps" value={logged.reps || ''} onChange={(e) => logExercise(dayIdx, exIdx, {reps: e.target.value})} />
+<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(dayIdx, exIdx, {distance: e.target.value})} />
+<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(dayIdx, exIdx, {time: e.target.value})} />
+<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})} />
 </div>
 {Object.keys(logged).length > 0 && <p style={{fontSize: '12px', color: 'var(--orange-light)', marginTop: '8px'}}>✅ Données enregistrées</p>}
 </div>
@@ -1215,9 +793,7 @@ onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})}
 )}
 
 {currentTab === 'plan' && !currentWeekPlan && (
-<div className="message info">
-Allez dans l'onglet Configuration pour générer votre plan d'entraînement
-</div>
+<div className="message info">Allez dans l'onglet Configuration pour générer votre plan d'entraînement</div>
 )}
 
 {currentTab === 'chat' && (
@@ -1230,15 +806,11 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 <div className="chat-container">
 <div className="chat-messages">
 {chatMessages.length === 0 && (
-<div style={{textAlign: 'center', color: 'var(--text-dim)', marginTop: '20px'}}>
-Commence la conversation! 💪
-</div>
+<div style={{textAlign: 'center', color: 'var(--text-dim)', marginTop: '20px'}}>Commence la conversation! 💪</div>
 )}
 {chatMessages.map((msg, idx) => (
 <React.Fragment key={idx}>
-<div className={'chat-message ' + msg.role}>
-{msg.content}
-</div>
+<div className={'chat-message ' + msg.role}>{msg.content}</div>
 {pendingPlanUpdate && pendingPlanUpdate.forIndex === idx && (
 <div className="plan-update-card">
 <div className="plan-update-title">🔄 Modification de plan proposée</div>
@@ -1251,26 +823,13 @@ Commence la conversation! 💪
 )}
 </React.Fragment>
 ))}
-{loading && (
-<div className="chat-message assistant">
-<span className="spinner"></span> Coach réfléchit...
-</div>
-)}
+{loading && (<div className="chat-message assistant"><span className="spinner"></span> Coach réfléchit...</div>)}
 <div ref={chatEndRef} />
 </div>
 
 <div className="chat-input-area">
-<input
-type="text"
-value={chatInput}
-onChange={(e) => setChatInput(e.target.value)}
-onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-placeholder="Votre question..."
-disabled={loading}
-/>
-<button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>
-↩️
-</button>
+<input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} placeholder="Votre question..." disabled={loading} />
+<button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>↩️</button>
 </div>
 </div>
 </div>
@@ -1278,11 +837,9 @@ disabled={loading}
 
 {currentTab === 'history' && (
 <div>
-<h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique & Progression</h2>
+<h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique &amp; Progression</h2>
 {weekHistory.length === 0 && (
-<div className="message info">
-Aucune semaine terminée pour l'instant. Complète ta semaine et clique sur "✅ Terminer la semaine" dans l'onglet Plan pour commencer ton historique.
-</div>
+<div className="message info">Aucune semaine terminée pour l'instant. Complète ta semaine et clique sur "✅ Terminer la semaine" dans l'onglet Plan pour commencer ton historique.</div>
 )}
 {weekHistory.length > 0 && (
 <div>
@@ -1324,12 +881,15 @@ return (
 </div>
 
 <h3 className="section-title" style={{marginTop: '10px'}}>Détail des séances</h3>
-{weekHistory.slice().reverse().map((w, wIdx) => (
+{reversedHistory.map(({ entry: w, idx: wIdx }) => (
 <div className="history-week" key={wIdx}>
+<div className="history-week-header">
 <h3>{'Semaine ' + w.week + ' — ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
+<button className="btn-delete-week" onClick={() => deleteWeekEntry(wIdx)} title="Supprimer cet entraînement de l'historique">🗑️ Supprimer</button>
+</div>
 <p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume(w) + ' kg cumulés'}</p>
 {(w.plan.days || []).map((day, dayIdx) => {
-const cardKey = w.week + '-' + dayIdx;
+const cardKey = w.week + '-' + dayIdx + '-' + wIdx;
 const stats = computeDayStats(w, dayIdx, day);
 const isOpen = !!expandedWorkouts[cardKey];
 return (
@@ -1339,7 +899,10 @@ return (
 <span className="workout-card-icon">{typeIcon(day.type)}</span>
 <span><strong>{day.day}</strong> <span className="workout-card-daytype">— {day.type}</span></span>
 </div>
+<div className="workout-card-header-right">
+<button className="btn-delete-day" onClick={(e) => { e.stopPropagation(); deleteDayFromWeek(wIdx, dayIdx); }} title="Supprimer cette séance">🗑️</button>
 <span className="chevron">{isOpen ? '▾' : '▸'}</span>
+</div>
 </div>
 <div className="workout-card-summary">{summaryLine(day, stats)}</div>
 {isOpen && (
@@ -1348,20 +911,25 @@ return (
 const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
 const hasLog = Object.keys(log).length > 0;
 return (
-<div key={exIdx}>
+<div key={exIdx} className="history-exercise-row">
+<div style={{flex: 1}}>
 <div className="workout-card-exercise-name">{ex.name}</div>
 <div className="workout-card-exercise-detail">
 {'Prévu: ' + ex.sets + ' x ' + ex.reps + (ex.weight ? (' @ ' + ex.weight) : '')}
 {hasLog && (
-<><br />
+<React.Fragment><br />
 {'Réalisé: '}
 {log.weight ? (log.weight + 'kg x ' + (log.reps || '?') + ' reps ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
-</>
+</React.Fragment>
 )}
 </div>
+</div>
+{hasLog && (
+<button className="btn-delete-exercise" onClick={(e) => { e.stopPropagation(); deleteExerciseLog(wIdx, dayIdx, exIdx); }} title="Supprimer cet exercice complété">🗑️</button>
+)}
 </div>
 );
 })}
@@ -1378,12 +946,35 @@ return (
 </div>
 )}
 </div>
+{exerciseModal && (() => {
+const info = getExerciseInfo(exerciseModal.name);
+const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + modalFrame + '.jpg') : null;
+const ytUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseModal.name + ' technique tutoriel exercice');
+return (
+<div className="modal-overlay" onClick={() => setExerciseModal(null)}>
+<div className="modal-box" onClick={(e) => e.stopPropagation()}>
+<div className="modal-header">
+<h3>{exerciseModal.name}</h3>
+<button className="modal-close" onClick={() => setExerciseModal(null)}>✕</button>
+</div>
+<div className="modal-media">
+{imgSrc ? (
+<img src={imgSrc} alt={exerciseModal.name} onError={(e) => { e.target.style.display = 'none'; }} />
+) : (
+<div className="modal-media-fallback">🎥<br />Démo visuelle non disponible pour cet exercice</div>
+)}
+</div>
+<p className="modal-desc">{info ? info.desc : "Description détaillée non disponible pour cet exercice. Consulte la vidéo ci-dessous pour la technique correcte."}</p>
+<a className="btn-video" href={ytUrl} target="_blank" rel="noopener noreferrer">▶️ Voir des vidéos explicatives sur YouTube</a>
+</div>
+</div>
+);
+})()}
 </div>
 );
 }
 
 ReactDOM.render(<FitCoachApp />, document.getElementById('root'));
-
 </script>
 </body>
 </html>
