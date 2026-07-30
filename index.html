@@ -130,6 +130,13 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 .close-btn { background: var(--surface-2); color: var(--text); padding: 8px 12px; font-size: 12px; width: auto; margin-top: 10px; box-shadow: none; }
 .session-timer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border: 1px solid var(--orange-dark); border-radius: 10px; padding: 12px 14px; margin-bottom: 18px; }
 .session-timer-display { font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700; color: var(--orange-light); letter-spacing: 1px; }
+.sets-count-line { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.sets-recorded-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.set-recorded-row { display: flex; justify-content: space-between; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12.5px; color: var(--text); }
+.set-input-row { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.set-input-row label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 13px; }
+.set-input-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.optional-extra-fields input, .optional-extra-fields textarea { margin-bottom: 10px; }
 .chart-container { display: flex; align-items: flex-end; gap: 8px; height: 150px; margin: 15px 0; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
 .chart-bar { width: 100%; background: linear-gradient(180deg, var(--orange-light) 0%, var(--orange) 100%); border-radius: 4px 4px 0 0; min-height: 4px; box-shadow: 0 0 10px rgba(255,122,26,0.3); }
@@ -300,6 +307,10 @@ const [exerciseModal, setExerciseModal] = useState(null);
 const [modalFrame, setModalFrame] = useState(0);
 const [sessionTimer, setSessionTimer] = useState(0);
 const [isTimerRunning, setIsTimerRunning] = useState(false);
+const [logModal, setLogModal] = useState(null);
+const [logModalFrame, setLogModalFrame] = useState(0);
+const [currentSetWeight, setCurrentSetWeight] = useState('');
+const [currentSetReps, setCurrentSetReps] = useState('');
 const chatEndRef = useRef(null);
 
 useEffect(() => {
@@ -335,6 +346,13 @@ if (!isTimerRunning) return;
 const interval = setInterval(() => setSessionTimer(t => t + 1), 1000);
 return () => clearInterval(interval);
 }, [isTimerRunning]);
+
+useEffect(() => {
+if (!logModal) return;
+setLogModalFrame(0);
+const interval = setInterval(() => setLogModalFrame(f => (f === 0 ? 1 : 0)), 900);
+return () => clearInterval(interval);
+}, [logModal]);
 
 const toggleEquipmentItem = (id) => {
 setUserEquipmentList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -397,12 +415,15 @@ let volume = 0, distance = 0, timeMin = 0, loggedCount = 0;
 (day.exercises || []).forEach((ex, exIdx) => {
 const log = (weekEntry.logs || {})[dayIdx + '-' + exIdx];
 if (!log) return;
-const w = parseFloat(log.weight) || 0;
-const r = parseFloat(log.reps) || 0;
+const sets = log.sets || [];
+sets.forEach(s => {
+const w = parseFloat(s.weight) || 0;
+const r = parseFloat(s.reps) || 0;
 if (w && r) volume += w * r;
+});
 if (log.distance) distance += parseFloat(log.distance) || 0;
 if (log.time) timeMin += parseTimeToMinutes(log.time);
-if (Object.keys(log).length) loggedCount++;
+if (sets.length > 0 || log.distance || log.time || log.notes) loggedCount++;
 });
 return {
 volume: Math.round(volume),
@@ -485,6 +506,28 @@ const handleFinishWorkout = () => {
 setIsTimerRunning(false);
 };
 
+const openLogModal = (dayIdx, exIdx, name) => {
+setCurrentSetWeight('');
+setCurrentSetReps('');
+setLogModal({ dayIdx, exIdx, name });
+};
+
+const closeLogModal = () => {
+setLogModal(null);
+};
+
+const saveSet = () => {
+if (!logModal) return;
+const key = logModal.dayIdx + '-' + logModal.exIdx;
+setLogs(prev => {
+const existing = prev[key] || {};
+const sets = existing.sets || [];
+return { ...prev, [key]: { ...existing, sets: [...sets, { weight: currentSetWeight, reps: currentSetReps }] } };
+});
+setCurrentSetWeight('');
+setCurrentSetReps('');
+};
+
 const generateWeekPlan = async () => {
 if (!apiKey) {
 setMessage('Erreur: Clé API manquante');
@@ -509,8 +552,7 @@ const day = lastWeek.plan.days[dayIdx];
 const ex = day && day.exercises[exIdx];
 if (!ex) return null;
 const details = [];
-if (val.weight) details.push(val.weight + 'kg');
-if (val.reps) details.push(val.reps + ' reps');
+if (val.sets && val.sets.length) details.push(val.sets.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
 if (val.distance) details.push(val.distance + 'km');
 if (val.time) details.push(val.time);
 if (val.notes) details.push('note: ' + val.notes);
@@ -814,14 +856,9 @@ return (
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
 
-<div className="log-inputs">
-<input type="number" placeholder="Poids (kg)" value={logged.weight || ''} onChange={(e) => logExercise(dayIdx, exIdx, {weight: e.target.value})} />
-<input type="number" placeholder="Reps" value={logged.reps || ''} onChange={(e) => logExercise(dayIdx, exIdx, {reps: e.target.value})} />
-<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(dayIdx, exIdx, {distance: e.target.value})} />
-<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(dayIdx, exIdx, {time: e.target.value})} />
-<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(dayIdx, exIdx, {notes: e.target.value})} />
-</div>
-{Object.keys(logged).length > 0 && <p style={{fontSize: '12px', color: 'var(--orange-light)', marginTop: '8px'}}>✅ Données enregistrées</p>}
+<p className="sets-count-line">{'Séries enregistrées: ' + (logged.sets || []).length}</p>
+<button type="button" className="btn-secondary" onClick={() => openLogModal(dayIdx, exIdx, ex.name)}>▶️ COMMENCER CET EXERCICE</button>
+{((logged.sets && logged.sets.length > 0) || logged.distance || logged.time || logged.notes) && <p style={{fontSize: '12px', color: 'var(--orange-light)', marginTop: '8px'}}>✅ Données enregistrées</p>}
 </div>
 );
 })}
@@ -947,7 +984,8 @@ return (
 <div className="workout-card-body" onClick={(e) => e.stopPropagation()}>
 {(day.exercises || []).map((ex, exIdx) => {
 const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
-const hasLog = Object.keys(log).length > 0;
+const logSets = log.sets || [];
+const hasLog = logSets.length > 0 || log.distance || log.time || log.notes;
 return (
 <div key={exIdx} className="history-exercise-row">
 <div style={{flex: 1}}>
@@ -957,7 +995,7 @@ return (
 {hasLog && (
 <React.Fragment><br />
 {'Réalisé: '}
-{log.weight ? (log.weight + 'kg x ' + (log.reps || '?') + ' reps ') : ''}
+{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
@@ -1004,6 +1042,56 @@ return (
 </div>
 <p className="modal-desc">{info ? info.desc : "Description détaillée non disponible pour cet exercice. Consulte la vidéo ci-dessous pour la technique correcte."}</p>
 <a className="btn-video" href={ytUrl} target="_blank" rel="noopener noreferrer">▶️ Voir des vidéos explicatives sur YouTube</a>
+</div>
+</div>
+);
+})()}
+
+{logModal && (() => {
+const info = getExerciseInfo(logModal.name);
+const key = logModal.dayIdx + '-' + logModal.exIdx;
+const logged = logs[key] || {};
+const sets = logged.sets || [];
+const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + logModalFrame + '.jpg') : null;
+return (
+<div className="modal-overlay" onClick={closeLogModal}>
+<div className="modal-box" onClick={(e) => e.stopPropagation()}>
+<div className="modal-header">
+<h3>{logModal.name}</h3>
+<button className="modal-close" onClick={closeLogModal}>✕</button>
+</div>
+<div className="modal-media">
+{imgSrc ? (
+<img src={imgSrc} alt={logModal.name} onError={(e) => { e.target.style.display = 'none'; }} />
+) : (
+<div className="modal-media-fallback">🎥<br />Démo visuelle non disponible pour cet exercice</div>
+)}
+</div>
+{sets.length > 0 && (
+<div className="sets-recorded-list">
+{sets.map((s, si) => (
+<div key={si} className="set-recorded-row">
+<span>{'Série ' + (si + 1)}</span>
+<span>{(s.weight || '?') + ' kg x ' + (s.reps || '?') + ' reps'}</span>
+</div>
+))}
+</div>
+)}
+<div className="set-input-row">
+<label>{'Série ' + (sets.length + 1)}</label>
+<div className="set-input-fields">
+<input type="number" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
+<input type="number" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
+</div>
+<button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
+</div>
+<div className="optional-extra-fields">
+<p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
+<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value})} />
+<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value})} />
+<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
+</div>
+<button type="button" className="btn-secondary" style={{marginTop: '12px'}} onClick={closeLogModal}>🏁 TERMINER CET EXERCICE</button>
 </div>
 </div>
 );
