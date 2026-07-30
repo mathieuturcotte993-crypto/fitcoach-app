@@ -193,6 +193,25 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 .modal-media img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .modal-media-fallback { color: var(--text-dim); text-align: center; font-size: 14px; }
 .btn-video { display: block; text-align: center; background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; }
+.calendar-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 6px 0 12px 0; }
+.calendar-nav-btn { width: auto; padding: 6px 14px; font-size: 16px; font-weight: 700; }
+.calendar-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; color: var(--orange-light); min-width: 160px; text-align: center; text-transform: capitalize; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 10px; }
+.calendar-weekday { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-dim); padding: 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.calendar-day { position: relative; aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; padding: 2px; }
+.calendar-day:hover { border-color: var(--orange-dark); }
+.calendar-day-muted { opacity: 0.3; }
+.calendar-day-workout { background: rgba(255,122,26,0.1); border-color: var(--orange-dark); }
+.calendar-day-selected { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(255,122,26,0.3); }
+.calendar-day-number { font-size: 12px; color: var(--text); font-weight: 600; }
+.calendar-day-icons { font-size: 12px; line-height: 1; }
+.calendar-day-detail { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--orange); border-radius: 10px; padding: 14px; margin-top: 10px; }
+.calendar-day-detail-title { font-family: 'Rajdhani', sans-serif; color: var(--orange-light); font-size: 15px; margin-bottom: 8px; text-transform: capitalize; }
+.calendar-day-empty { color: var(--text-dim); font-size: 13px; }
+.calendar-day-entry { margin-bottom: 10px; }
+.calendar-day-entry:last-child { margin-bottom: 0; }
+.calendar-day-entry-header { color: var(--text); font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.calendar-day-entry-summary { color: var(--text-dim); font-size: 12.5px; }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-0); }
 ::-webkit-scrollbar-thumb { background: var(--orange-dark); border-radius: 4px; }
@@ -236,6 +255,8 @@ const EQUIPMENT_PRESETS = [
 { id: 'poids_corps_only', label: '🤸 Poids du corps uniquement', items: ['poids_corps'] }
 ];
 
+const MONTH_NAMES = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+const WEEKDAY_LABELS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const EXERCISE_IMAGE_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
 const EXERCISE_LIBRARY = [
@@ -426,6 +447,9 @@ const [exerciseOrder, setExerciseOrder] = useState({});
 const [dragInfo, setDragInfo] = useState(null);
 const [dragOverInfo, setDragOverInfo] = useState(null);
 const [settledInfo, setSettledInfo] = useState(null);
+const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
+const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
+const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
 const chatEndRef = useRef(null);
 
 useEffect(() => {
@@ -790,6 +814,114 @@ if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' kg soulevé
 if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) return typeIcon(day.type) + ' Total: ' + stats.distance + ' km';
 if (t.includes('cardio')) return '❤️ Total: ' + (stats.timeMin > 0 ? stats.timeMin + ' min' : 'N/A');
 return typeIcon(day.type) + ' Séance complétée';
+};
+
+const localDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+};
+
+const dateStrOf = (year, month, day) => {
+  const mm = String(month + 1).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return year + '-' + mm + '-' + dd;
+};
+
+const getDayDateStr = (dayEntryLogs, day, dayIdx) => {
+  let earliest = null;
+  (day.exercises || []).forEach((ex, exIdx) => {
+    const log = dayEntryLogs[dayIdx + '-' + exIdx];
+    if (!log) return;
+    let ts = null;
+    if (log.exerciseStartTime) ts = log.exerciseStartTime;
+    else if (log.series && log.series.length && log.series[0].timestamp) ts = log.series[0].timestamp;
+    if (!ts) return;
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return;
+    if (!earliest || d < earliest) earliest = d;
+  });
+  return earliest ? localDateStr(earliest) : null;
+};
+
+const buildCalendarEntries = () => {
+  const map = {};
+  const addWeek = (weekEntry, isCurrent) => {
+    (weekEntry.plan.days || []).forEach((day, dayIdx) => {
+      const dateStr = getDayDateStr(weekEntry.logs || {}, day, dayIdx);
+      if (!dateStr) return;
+      const stats = computeDayStats(weekEntry, dayIdx, day);
+      if (stats.loggedCount === 0) return;
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push({ week: weekEntry.week, dayIdx: dayIdx, day: day, stats: stats, isCurrent: !!isCurrent });
+    });
+  };
+  weekHistory.forEach((w) => addWeek(w, false));
+  if (currentWeekPlan) addWeek({ week: currentWeekPlan.week, plan: currentWeekPlan, logs: logs }, true);
+  return map;
+};
+
+const buildCalendarGrid = (year, month) => {
+  const firstOfMonth = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  let firstWeekday = firstOfMonth.getDay();
+  firstWeekday = (firstWeekday + 6) % 7;
+  const cells = [];
+  for (let i = firstWeekday - 1; i >= 0; i--) {
+    const dayNum = daysInPrevMonth - i;
+    const m = month === 0 ? 11 : month - 1;
+    const y = month === 0 ? year - 1 : year;
+    cells.push({ day: dayNum, month: m, year: y, current: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({ day: d, month: month, year: year, current: true });
+  }
+  let nextDay = 1;
+  while (cells.length % 7 !== 0) {
+    const m = month === 11 ? 0 : month + 1;
+    const y = month === 11 ? year + 1 : year;
+    cells.push({ day: nextDay, month: m, year: y, current: false });
+    nextDay++;
+  }
+  return cells;
+};
+
+const computeMonthStats = (calendarEntries, year, month) => {
+  let sessions = 0, volume = 0, distance = 0, timeMin = 0;
+  Object.keys(calendarEntries).forEach((dateStr) => {
+    const parts = dateStr.split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    if (y === year && m === month) {
+      calendarEntries[dateStr].forEach((e) => {
+        sessions += 1;
+        volume += e.stats.volume;
+        distance += e.stats.distance;
+        timeMin += e.stats.timeMin;
+      });
+    }
+  });
+  return { sessions: sessions, volume: Math.round(volume), distance: Math.round(distance * 10) / 10, timeMin: Math.round(timeMin) };
+};
+
+const formatFrenchDate = (dateStr) => {
+  const parts = dateStr.split('-').map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const goToPrevMonth = () => {
+  setSelectedCalendarDate(null);
+  if (calendarMonth === 0) { setCalendarYear((y) => y - 1); setCalendarMonth(11); }
+  else { setCalendarMonth((m) => m - 1); }
+};
+
+const goToNextMonth = () => {
+  setSelectedCalendarDate(null);
+  if (calendarMonth === 11) { setCalendarYear((y) => y + 1); setCalendarMonth(0); }
+  else { setCalendarMonth((m) => m + 1); }
 };
 
 const toggleWorkout = (key) => {
@@ -1372,6 +1504,77 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 {currentTab === 'history' && (
 <div>
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique &amp; Progression</h2>
+{(() => {
+  const calendarEntries = buildCalendarEntries();
+  const grid = buildCalendarGrid(calendarYear, calendarMonth);
+  const monthStats = computeMonthStats(calendarEntries, calendarYear, calendarMonth);
+  const selectedEntries = selectedCalendarDate ? (calendarEntries[selectedCalendarDate] || []) : null;
+  return (
+    <div className="dashboard-block">
+      <h3 className="section-title">Statistiques du mois selectionne</h3>
+      <div className="stats">
+        <div className="stat-card">
+          <div className="value">{monthStats.sessions}</div>
+          <div className="label">Seances</div>
+        </div>
+        <div className="stat-card">
+          <div className="value">{monthStats.volume}</div>
+          <div className="label">Volume (kg)</div>
+        </div>
+        <div className="stat-card">
+          <div className="value">{monthStats.distance}</div>
+          <div className="label">Distance (km)</div>
+        </div>
+        <div className="stat-card">
+          <div className="value">{monthStats.timeMin}</div>
+          <div className="label">Temps (min)</div>
+        </div>
+      </div>
+      <div className="calendar-nav">
+        <button type="button" className="btn-secondary calendar-nav-btn" onClick={goToPrevMonth}>&#8249;</button>
+        <div className="calendar-title">{MONTH_NAMES[calendarMonth] + ' ' + calendarYear}</div>
+        <button type="button" className="btn-secondary calendar-nav-btn" onClick={goToNextMonth}>&#8250;</button>
+      </div>
+      <div className="calendar-grid">
+        {WEEKDAY_LABELS.map((wd, i) => (<div key={'wd' + i} className="calendar-weekday">{wd}</div>))}
+        {grid.map((cell, idx) => {
+          const dateStr = dateStrOf(cell.year, cell.month, cell.day);
+          const dayEntries = calendarEntries[dateStr] || [];
+          const hasWorkout = dayEntries.length > 0;
+          const icons = Array.from(new Set(dayEntries.map((e) => typeIcon(e.day.type))));
+          const isSelected = selectedCalendarDate === dateStr;
+          return (
+            <div
+              key={idx}
+              className={'calendar-day' + (cell.current ? '' : ' calendar-day-muted') + (hasWorkout ? ' calendar-day-workout' : '') + (isSelected ? ' calendar-day-selected' : '')}
+              onClick={() => setSelectedCalendarDate(dateStr === selectedCalendarDate ? null : dateStr)}
+            >
+              <span className="calendar-day-number">{cell.day}</span>
+              {hasWorkout && (<span className="calendar-day-icons">{icons.join('')}</span>)}
+            </div>
+          );
+        })}
+      </div>
+      {selectedCalendarDate && (
+        <div className="calendar-day-detail">
+          <h4 className="calendar-day-detail-title">{formatFrenchDate(selectedCalendarDate)}</h4>
+          {(!selectedEntries || selectedEntries.length === 0) ? (
+            <p className="calendar-day-empty">Aucun entrainement ce jour</p>
+          ) : (
+            selectedEntries.map((entry, i) => (
+              <div key={i} className="calendar-day-entry">
+                <div className="calendar-day-entry-header">{typeIcon(entry.day.type) + ' ' + entry.day.day + ' \u2014 ' + entry.day.type + (entry.isCurrent ? ' (semaine en cours)' : ' (semaine ' + entry.week + ')')}</div>
+                <div className="calendar-day-entry-summary">{summaryLine(entry.day, entry.stats)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+})()}
+
+
 {currentWeekPlan && Object.keys(logs).some((k) => { const l = logs[k]; return l && (((l.series || []).length > 0) || l.distance || l.time); }) && (
 <div className="history-week" style={{borderLeftColor: 'var(--green)'}}>
 <div className="history-week-header">
