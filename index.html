@@ -267,6 +267,14 @@ outline: 2px solid var(--orange-light); outline-offset: 2px;
 .recap-line { font-size: 12.5px; color: var(--text-dim); margin-bottom: 4px; }
 .recap-line b { color: var(--text); font-weight: 600; }
 .field-hint { display: block; font-size: 11.5px; color: var(--text-dim); margin: -4px 0 8px; line-height: 1.4; }
+.hist-actions { display: flex; gap: 6px; margin: 4px 0 6px; flex-wrap: wrap; }
+.hist-icon-btn { width: auto; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); font-size: 11px; padding: 4px 9px; border-radius: 6px; box-shadow: none; }
+.hist-icon-btn:hover:not(:disabled) { color: var(--orange); border-color: var(--orange); transform: none; box-shadow: none; }
+.hist-icon-btn.danger:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.edit-series-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.edit-series-row > span { font-size: 12px; color: var(--text-dim); min-width: 56px; }
+.edit-series-row input { flex: 1; min-width: 0; }
+.edit-series-row .hist-icon-btn { flex: 0 0 auto; }
 .day-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
 .day-tab { flex: 0 0 auto; width: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); box-shadow: none; text-align: left; }
 .day-tab:hover:not(:disabled) { transform: none; border-color: var(--orange-dark); box-shadow: none; }
@@ -564,6 +572,7 @@ const [currentSetReps, setCurrentSetReps] = useState('');
 const [seriesFeedback, setSeriesFeedback] = useState(false);
 const [restTimer, setRestTimer] = useState(null);
 const [exerciseSummary, setExerciseSummary] = useState(null);
+const [editLog, setEditLog] = useState(null);
 const [exerciseOrder, setExerciseOrder] = useState({});
 const [dragInfo, setDragInfo] = useState(null);
 const [dragOverInfo, setDragOverInfo] = useState(null);
@@ -1277,10 +1286,11 @@ setCalculatingCalories(false);
 
 const openLogModal = (dayIdx, exIdx, name, type, sets) => {
 setRestTimer(null);
-setCurrentSetWeight('');
-setCurrentSetReps('');
-setAllowExtraSet(false);
 const key = dayIdx + '-' + exIdx;
+const draft = logs[key] || {};
+setCurrentSetWeight(draft.draftWeight || '');
+setCurrentSetReps(draft.draftReps || '');
+setAllowExtraSet(false);
 setLogs(prev => {
 const existing = prev[key] || {};
 if (existing.exerciseStartTime) return prev;
@@ -1300,12 +1310,23 @@ const seriesCount = (existing.series || []).length;
 let durationSec = null;
 if (startTime) { durationSec = Math.round((new Date(endTime) - new Date(startTime)) / 1000); }
 setExerciseSummary({ name: logModal.name, seriesCount: seriesCount, durationSec: durationSec });
-return { ...prev, [key]: { ...existing, exerciseEndTime: endTime } };
+return { ...prev, [key]: { ...existing, exerciseEndTime: endTime, draftWeight: '', draftReps: '' } };
 });
 }
 setRestTimer(null);
 setAllowExtraSet(false);
 setLogModal(null);
+};
+
+const backFromLogModal = () => {
+if (logModal) {
+const key = logModal.dayIdx + '-' + logModal.exIdx;
+setLogs(prev => ({ ...prev, [key]: { ...(prev[key] || {}), draftWeight: currentSetWeight, draftReps: currentSetReps } }));
+}
+setRestTimer(null);
+setAllowExtraSet(false);
+setLogModal(null);
+setMessage('\u21a9\ufe0f Retour au plan \u2014 tes donnees sont conservees');
 };
 
 const goToNextExercise = (dayIdx, exIdx) => {
@@ -1342,7 +1363,7 @@ setDayWorkoutTimes(prev => ({ ...prev, [logModal.dayIdx]: { start: timestamp, en
 setLogs(prev => {
 const existing = prev[key] || {};
 const series = existing.series || [];
-return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSetWeight, reps: currentSetReps, timestamp: timestamp }] } };
+return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSetWeight, reps: currentSetReps, timestamp: timestamp }], draftWeight: '', draftReps: '' } };
 });
 setCurrentSetWeight('');
 setCurrentSetReps('');
@@ -1464,6 +1485,60 @@ const key = dayIndex + '-' + exerciseIndex;
 const hasContent = ['distance', 'time', 'allure', 'heartRate', 'notes'].some((f) => data[f] !== undefined && String(data[f]).trim() !== '');
 if (hasContent) startDayChronoIfNeeded(dayIndex);
 setLogs(prev => ({ ...prev, [key]: { ...prev[key], ...data } }));
+};
+
+const openEditLog = (scope, weekIdx, dayIdx, exIdx, name, log) => {
+setEditLog({
+scope: scope, weekIdx: weekIdx, dayIdx: dayIdx, exIdx: exIdx, name: name,
+series: (log.series || []).map(s => ({ weight: s.weight == null ? '' : String(s.weight), reps: s.reps == null ? '' : String(s.reps), timestamp: s.timestamp })),
+distance: log.distance || '', time: log.time || '', allure: log.allure || '', heartRate: log.heartRate || '', notes: log.notes || ''
+});
+};
+
+const updateEditSeries = (idx, field, value) => {
+setEditLog(prev => prev ? { ...prev, series: prev.series.map((s, i) => i === idx ? { ...s, [field]: value } : s) } : prev);
+};
+
+const addEditSeries = () => {
+setEditLog(prev => prev ? { ...prev, series: [...prev.series, { weight: '', reps: '', timestamp: new Date().toISOString() }] } : prev);
+};
+
+const removeEditSeries = (idx) => {
+setEditLog(prev => prev ? { ...prev, series: prev.series.filter((s, i) => i !== idx) } : prev);
+};
+
+const writeLogPatch = (scope, weekIdx, key, patch, remove) => {
+if (scope === 'current') {
+setLogs(prev => {
+const next = { ...prev };
+if (remove) { delete next[key]; } else { next[key] = { ...(next[key] || {}), ...patch }; }
+return next;
+});
+} else {
+setWeekHistory(prev => prev.map((w, i) => {
+if (i !== weekIdx) return w;
+const nl = { ...(w.logs || {}) };
+if (remove) { delete nl[key]; } else { nl[key] = { ...(nl[key] || {}), ...patch }; }
+return { ...w, logs: nl };
+}));
+}
+};
+
+const saveEditLog = () => {
+const t = editLog;
+if (!t) return;
+const key = t.dayIdx + '-' + t.exIdx;
+const cleanSeries = t.series.filter(s => String(s.weight).trim() !== '' || String(s.reps).trim() !== '').map(s => ({ weight: String(s.weight).trim(), reps: String(s.reps).trim(), timestamp: s.timestamp || new Date().toISOString() }));
+writeLogPatch(t.scope, t.weekIdx, key, { series: cleanSeries, distance: t.distance, time: t.time, allure: t.allure, heartRate: t.heartRate, notes: t.notes }, false);
+setEditLog(null);
+setMessage('\u2705 Historique mis a jour');
+};
+
+const deleteLogEntry = (scope, weekIdx, dayIdx, exIdx, name) => {
+if (!window.confirm('Supprimer les donnees enregistrees pour "' + name + '" ? Cette action est irreversible.')) return;
+writeLogPatch(scope, weekIdx, dayIdx + '-' + exIdx, null, true);
+setEditLog(null);
+setMessage('\ud83d\uddd1\ufe0f ' + name + ' retire de l historique');
 };
 
 const sendChatMessage = async () => {
@@ -2130,6 +2205,10 @@ return (
 <div key={exIdx} className="history-exercise-row">
 <div style={{flex: 1}}>
 <div className="workout-card-exercise-name">{ex.name}</div>
+<div className="hist-actions">
+<button type="button" className="hist-icon-btn" title="Modifier les resultats" onClick={() => openEditLog('current', -1, dayIdx, exIdx, ex.name, log)}>✏️ Modifier</button>
+<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('current', -1, dayIdx, exIdx, ex.name)}>🗑️ Supprimer</button>
+</div>
 <div className="workout-card-exercise-detail">
 {'Réalisé: '}
 {logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
@@ -2232,12 +2311,17 @@ return (
 const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
 const logSets = log.series || [];
 const hasLog = logSets.length > 0 || log.distance || log.time || log.notes;
+if (!hasLog) return null;
 let maxW = 0;
 logSets.forEach(s => { const wt = parseFloat(s.weight) || 0; if (wt > maxW) maxW = wt; });
 return (
 <div key={exIdx} className="history-exercise-row">
 <div style={{flex: 1}}>
 <div className="workout-card-exercise-name">{ex.name}</div>
+<div className="hist-actions">
+<button type="button" className="hist-icon-btn" title="Modifier les resultats" onClick={() => openEditLog('archive', wIdx, dayIdx, exIdx, ex.name, log)}>✏️ Modifier</button>
+<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('archive', wIdx, dayIdx, exIdx, ex.name)}>🗑️ Supprimer</button>
+</div>
 <div className="workout-card-exercise-detail">
 {'Prévu: ' + ex.sets + ' x ' + ex.reps + (ex.weight ? (' @ ' + ex.weight) : '')}
 {hasLog && (
@@ -2332,11 +2416,11 @@ return m + ':' + String(s).padStart(2, '0');
 };
 const exerciseElapsedSec = logged.exerciseStartTime ? Math.max(0, Math.round(((logged.exerciseEndTime ? new Date(logged.exerciseEndTime) : new Date()) - new Date(logged.exerciseStartTime)) / 1000)) : null;
 return (
-<div className="modal-overlay" onClick={closeLogModal}>
+<div className="modal-overlay" onClick={backFromLogModal}>
 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
 <div className="modal-header">
 <h3>{logModal.name}</h3>
-<button className="modal-close" aria-label="Fermer" onClick={closeLogModal}>✕</button>
+<button className="modal-close" aria-label="Retour sans terminer" title="Retour — les donnees saisies sont conservees" onClick={backFromLogModal}>✕</button>
 </div>
 <div className="modal-media">
 {imgSrc ? (
@@ -2432,6 +2516,51 @@ logExercise(logModal.dayIdx, logModal.exIdx, t ? {allure: p, allureManual: true,
 </div>
 );
 })()}
+{editLog && (
+<div className="modal-overlay" onClick={() => setEditLog(null)}>
+<div className="modal-box" onClick={(e) => e.stopPropagation()}>
+<div className="modal-header">
+<h3>{'\u270f\ufe0f ' + editLog.name}</h3>
+<button className="modal-close" aria-label="Fermer" onClick={() => setEditLog(null)}>✕</button>
+</div>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px'}}>Corrige tes resultats puis enregistre. Une serie laissee vide est retiree.</p>
+<label style={{fontSize: '13px', display: 'block', marginBottom: '8px'}}>🏋️ Series (kg x reps)</label>
+{editLog.series.map((s, si) => (
+<div key={si} className="edit-series-row">
+<span>{'Serie ' + (si + 1)}</span>
+<input type="number" inputMode="decimal" placeholder="kg" value={s.weight} onChange={(e) => updateEditSeries(si, 'weight', e.target.value)} />
+<input type="number" inputMode="numeric" placeholder="reps" value={s.reps} onChange={(e) => updateEditSeries(si, 'reps', e.target.value)} />
+<button type="button" className="hist-icon-btn danger" title="Retirer cette serie" onClick={() => removeEditSeries(si)}>🗑️</button>
+</div>
+))}
+<button type="button" className="link-btn" onClick={addEditSeries}>➕ Ajouter une serie</button>
+<div className="form-group" style={{marginTop: '14px'}}>
+<label>🏃 Distance (km)</label>
+<input type="text" value={editLog.distance} onChange={(e) => setEditLog({ ...editLog, distance: e.target.value })} placeholder="Ex: 5" />
+</div>
+<div className="form-group">
+<label>⏱️ Temps (mm:ss)</label>
+<input type="text" value={editLog.time} onChange={(e) => setEditLog({ ...editLog, time: e.target.value })} placeholder="Ex: 27:30" />
+</div>
+<div className="form-group">
+<label>⚡ Allure (min:sec par km)</label>
+<input type="text" value={editLog.allure} onChange={(e) => setEditLog({ ...editLog, allure: e.target.value })} placeholder="Ex: 5:30" />
+</div>
+<div className="form-group">
+<label>❤️ FC moyenne (bpm)</label>
+<input type="text" value={editLog.heartRate} onChange={(e) => setEditLog({ ...editLog, heartRate: e.target.value })} placeholder="Ex: 145" />
+</div>
+<div className="form-group">
+<label>📝 Notes</label>
+<textarea rows="2" value={editLog.notes} onChange={(e) => setEditLog({ ...editLog, notes: e.target.value })} placeholder="Ressenti, remarques..." />
+</div>
+<button type="button" onClick={saveEditLog}>💾 Enregistrer les modifications</button>
+<button type="button" className="btn-secondary" style={{marginTop: '8px'}} onClick={() => setEditLog(null)}>Annuler</button>
+<button type="button" className="hist-icon-btn danger" style={{marginTop: '12px', width: '100%', padding: '9px'}} onClick={() => deleteLogEntry(editLog.scope, editLog.weekIdx, editLog.dayIdx, editLog.exIdx, editLog.name)}>🗑️ Supprimer cet exercice de l historique</button>
+</div>
+</div>
+)}
+
 {exerciseSummary && (
 <div className="modal-overlay" onClick={() => setExerciseSummary(null)}>
 <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{textAlign: 'center'}}>
