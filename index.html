@@ -71,6 +71,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 background: var(--surface-2); color: var(--orange-light); border: 1px solid var(--orange-dark); box-shadow: none;
 }
 .btn-secondary:hover:not(:disabled) { background: var(--surface-3); box-shadow: 0 0 14px rgba(255,122,26,0.2); }
+.btn-danger { background: linear-gradient(135deg, var(--red) 0%, #b83a3a 100%); color: #fff; box-shadow: 0 4px 16px rgba(255,92,92,0.3); }
+.btn-danger:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(255,92,92,0.45); }
 .workout-day {
 background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--orange);
 padding: 15px; margin-bottom: 15px; border-radius: 10px;
@@ -282,6 +284,99 @@ const n = normalizeText(name);
 return EXERCISE_LIBRARY.find(e => e.keys.some(k => n.includes(k))) || null;
 };
 
+
+const IDB_NAME = 'FitCoachDB';
+const IDB_VERSION = 1;
+let idbInstancePromise = null;
+
+function initDB() {
+  if (idbInstancePromise) return idbInstancePromise;
+  idbInstancePromise = new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error("IndexedDB non supporte par ce navigateur")); return; }
+    const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('config')) db.createObjectStore('config');
+      if (!db.objectStoreNames.contains('plans')) db.createObjectStore('plans');
+      if (!db.objectStoreNames.contains('history')) db.createObjectStore('history');
+      if (!db.objectStoreNames.contains('weights')) db.createObjectStore('weights');
+    };
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject((event.target && event.target.error) || new Error("Erreur ouverture IndexedDB"));
+    request.onblocked = () => reject(new Error('Ouverture IndexedDB bloquee (autre onglet ouvert)'));
+  });
+  return idbInstancePromise;
+}
+
+function idbPut(storeName, key, value) {
+  return initDB().then((db) => new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur ecriture IndexedDB (' + storeName + ')'));
+    } catch (e) { reject(e); }
+  }));
+}
+
+function idbGet(storeName, key) {
+  return initDB().then((db) => new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result !== undefined ? req.result : null);
+      req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur lecture IndexedDB (' + storeName + ')'));
+    } catch (e) { reject(e); }
+  }));
+}
+
+function idbGetAll(storeName) {
+  return initDB().then((db) => new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      if (store.getAll) {
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur lecture IndexedDB (' + storeName + ')'));
+      } else {
+        const results = [];
+        const req = store.openCursor();
+        req.onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor) { results.push(cursor.value); cursor.continue(); }
+          else resolve(results);
+        };
+        req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur lecture IndexedDB (' + storeName + ')'));
+      }
+    } catch (e) { reject(e); }
+  }));
+}
+
+function idbClearStore(storeName) {
+  return initDB().then((db) => new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const req = store.clear();
+      req.onsuccess = () => resolve(true);
+      req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur suppression IndexedDB (' + storeName + ')'));
+    } catch (e) { reject(e); }
+  }));
+}
+
+function saveConfig(data) { return idbPut('config', 'user', data); }
+function loadConfig() { return idbGet('config', 'user').catch((e) => { console.error('loadConfig error', e); return null; }); }
+function savePlan(weekNum, planData) { return idbPut('plans', 'week_' + weekNum, planData); }
+function loadPlan(weekNum) { return idbGet('plans', 'week_' + weekNum).catch((e) => { console.error('loadPlan error', e); return null; }); }
+function saveToHistory(weekEntry) { return idbPut('history', 'week_' + weekEntry.week, weekEntry); }
+function loadHistory() { return idbGetAll('history').then((arr) => arr.slice().sort((a, b) => (a.week || 0) - (b.week || 0))).catch((e) => { console.error('loadHistory error', e); return []; }); }
+function saveWeightEntry(dateStr, weightVal) { return idbPut('weights', dateStr, { date: dateStr, weight: weightVal }).catch((e) => { console.error('saveWeightEntry error', e); }); }
+function loadWeights() { return idbGetAll('weights').catch((e) => { console.error('loadWeights error', e); return []; }); }
+function deleteAllData() { return Promise.all(['config', 'plans', 'history', 'weights'].map((s) => idbClearStore(s))); }
+
 function FitCoachApp() {
 const [currentTab, setCurrentTab] = useState('setup');
 const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
@@ -336,27 +431,123 @@ const chatEndRef = useRef(null);
 useEffect(() => {
 chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
 }, [chatMessages, pendingPlanUpdate]);
-useEffect(() => { localStorage.setItem('apiKey', apiKey); }, [apiKey]);
-useEffect(() => { localStorage.setItem('userLevel', userLevel); }, [userLevel]);
-useEffect(() => { localStorage.setItem('userEquipmentList', JSON.stringify(userEquipmentList)); }, [userEquipmentList]);
-useEffect(() => { localStorage.setItem('userGoals', userGoals); }, [userGoals]);
-useEffect(() => { localStorage.setItem('userWeight', userWeight); }, [userWeight]);
-useEffect(() => { localStorage.setItem('userAge', userAge); }, [userAge]);
-useEffect(() => { localStorage.setItem('userHeight', userHeight); }, [userHeight]);
+const [dataReady, setDataReady] = useState(false);
+
 useEffect(() => {
-if (currentWeekPlan) { localStorage.setItem('weekPlan', JSON.stringify(currentWeekPlan)); }
-else { localStorage.removeItem('weekPlan'); }
-}, [currentWeekPlan]);
-useEffect(() => { localStorage.setItem('weekNumber', weekNumber); }, [weekNumber]);
-useEffect(() => { localStorage.setItem('logs', JSON.stringify(logs)); }, [logs]);
-useEffect(() => { localStorage.setItem('weekHistory', JSON.stringify(weekHistory)); }, [weekHistory]);
-useEffect(() => { localStorage.setItem('chatMessages', JSON.stringify(chatMessages)); }, [chatMessages]);
+  let cancelled = false;
+  async function initAndMigrate() {
+    try {
+      await initDB();
+      let idbConfig = await loadConfig();
+      const alreadyMigrated = localStorage.getItem('fitcoach_idb_migrated');
+
+      if (!idbConfig && !alreadyMigrated) {
+        const hasLegacy = localStorage.getItem('apiKey') !== null || localStorage.getItem('weekPlan') !== null || localStorage.getItem('logs') !== null || localStorage.getItem('weekHistory') !== null;
+        if (hasLegacy) {
+          const legacyWeekNumber = parseInt(localStorage.getItem('weekNumber') || '1');
+          const legacyConfig = {
+            apiKey: localStorage.getItem('apiKey') || '',
+            userLevel: localStorage.getItem('userLevel') || 'intermediate',
+            userEquipmentList: userEquipmentList,
+            userGoals: localStorage.getItem('userGoals') || '',
+            userWeight: localStorage.getItem('userWeight') || '',
+            userAge: localStorage.getItem('userAge') || '',
+            userHeight: localStorage.getItem('userHeight') || '',
+            weekNumber: legacyWeekNumber,
+            chatMessages: JSON.parse(localStorage.getItem('chatMessages') || '[]'),
+            pendingPlanUpdate: JSON.parse(localStorage.getItem('pendingPlanUpdate') || 'null'),
+            exerciseProgression: JSON.parse(localStorage.getItem('exerciseProgression') || '[]')
+          };
+          await saveConfig(legacyConfig);
+          const legacyPlan = JSON.parse(localStorage.getItem('weekPlan') || 'null');
+          const legacyLogs = JSON.parse(localStorage.getItem('logs') || '{}');
+          const legacySessionCalories = JSON.parse(localStorage.getItem('sessionCalories') || '{}');
+          if (legacyPlan) {
+            await savePlan(legacyWeekNumber, { weekNumber: legacyWeekNumber, currentWeekPlan: legacyPlan, logs: legacyLogs, sessionTimer: 0, exerciseOrder: {}, sessionCalories: legacySessionCalories });
+          }
+          const legacyHistory = JSON.parse(localStorage.getItem('weekHistory') || '[]');
+          for (let i = 0; i < legacyHistory.length; i++) { await saveToHistory(legacyHistory[i]); }
+          ['apiKey','userLevel','userEquipmentList','userEquipment','userGoals','userWeight','userAge','userHeight','weekPlan','weekNumber','logs','weekHistory','chatMessages','pendingPlanUpdate','exerciseProgression','sessionCalories'].forEach((k) => localStorage.removeItem(k));
+          localStorage.setItem('fitcoach_idb_migrated', 'true');
+          idbConfig = legacyConfig;
+          if (!cancelled) setMessage('Donnees migrees vers IndexedDB avec succes');
+        } else {
+          localStorage.setItem('fitcoach_idb_migrated', 'true');
+        }
+      }
+
+      if (idbConfig) {
+        if (!cancelled) {
+          setApiKey(idbConfig.apiKey || '');
+          setUserLevel(idbConfig.userLevel || 'intermediate');
+          if (Array.isArray(idbConfig.userEquipmentList) && idbConfig.userEquipmentList.length) setUserEquipmentList(idbConfig.userEquipmentList);
+          setUserGoals(idbConfig.userGoals || '');
+          setUserWeight(idbConfig.userWeight || '');
+          setUserAge(idbConfig.userAge || '');
+          setUserHeight(idbConfig.userHeight || '');
+          if (Array.isArray(idbConfig.chatMessages)) setChatMessages(idbConfig.chatMessages);
+          if (idbConfig.pendingPlanUpdate) setPendingPlanUpdate(idbConfig.pendingPlanUpdate);
+          if (Array.isArray(idbConfig.exerciseProgression)) setExerciseProgression(idbConfig.exerciseProgression);
+        }
+        const wn = idbConfig.weekNumber || weekNumber;
+        if (!cancelled) setWeekNumber(wn);
+        const planData = await loadPlan(wn);
+        if (planData && !cancelled) {
+          if (planData.currentWeekPlan) setCurrentWeekPlan(planData.currentWeekPlan);
+          if (planData.logs) setLogs(planData.logs);
+          if (planData.exerciseOrder) setExerciseOrder(planData.exerciseOrder);
+          if (planData.sessionCalories) setSessionCalories(planData.sessionCalories);
+        }
+      }
+
+      const hist = await loadHistory();
+      if (!cancelled && hist && hist.length) setWeekHistory(hist);
+
+      if (!cancelled) setDataReady(true);
+    } catch (e) {
+      console.error('Erreur initialisation IndexedDB', e);
+      if (!cancelled) {
+        setMessage('Erreur IndexedDB: ' + (e && e.message ? e.message : 'inconnue'));
+        setDataReady(true);
+      }
+    }
+  }
+  initAndMigrate();
+  return () => { cancelled = true; };
+}, []);
+
 useEffect(() => {
-if (pendingPlanUpdate) { localStorage.setItem('pendingPlanUpdate', JSON.stringify(pendingPlanUpdate)); }
-else { localStorage.removeItem('pendingPlanUpdate'); }
-}, [pendingPlanUpdate]);
-useEffect(() => { localStorage.setItem('exerciseProgression', JSON.stringify(exerciseProgression)); }, [exerciseProgression]);
-useEffect(() => { localStorage.setItem('sessionCalories', JSON.stringify(sessionCalories)); }, [sessionCalories]);
+  if (!dataReady) return;
+  saveConfig({
+    apiKey: apiKey, userLevel: userLevel, userEquipmentList: userEquipmentList, userGoals: userGoals,
+    userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: weekNumber,
+    chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
+  }).catch((e) => setMessage('Erreur sauvegarde config (IndexedDB): ' + e.message));
+}, [dataReady, apiKey, userLevel, userEquipmentList, userGoals, userWeight, userAge, userHeight, weekNumber, chatMessages, pendingPlanUpdate, exerciseProgression]);
+
+useEffect(() => {
+  if (!dataReady) return;
+  savePlan(weekNumber, { weekNumber: weekNumber, currentWeekPlan: currentWeekPlan, logs: logs, sessionTimer: sessionTimer, exerciseOrder: exerciseOrder, sessionCalories: sessionCalories })
+    .catch((e) => setMessage('Erreur sauvegarde plan (IndexedDB): ' + e.message));
+}, [dataReady, weekNumber, currentWeekPlan, logs, sessionTimer, exerciseOrder, sessionCalories]);
+
+useEffect(() => {
+  if (!dataReady) return;
+  (async () => {
+    try {
+      await idbClearStore('history');
+      for (let i = 0; i < weekHistory.length; i++) { await saveToHistory(weekHistory[i]); }
+    } catch (e) {
+      setMessage('Erreur sauvegarde historique (IndexedDB): ' + e.message);
+    }
+  })();
+}, [dataReady, weekHistory]);
+
+useEffect(() => {
+  if (!dataReady || !userWeight) return;
+  const today = new Date().toISOString().slice(0, 10);
+  saveWeightEntry(today, userWeight);
+}, [dataReady, userWeight]);
 useEffect(() => {
 if (!exerciseModal) return;
 setModalFrame(0);
@@ -941,6 +1132,35 @@ return { ...w, logs: newLogs };
 }));
 };
 
+const handleDeleteAllData = () => {
+  if (!window.confirm('Es-tu sur ? Cette action est irreversible.')) return;
+  deleteAllData().then(() => {
+    setApiKey('');
+    setUserLevel('intermediate');
+    setUserEquipmentList((EQUIPMENT_PRESETS.find(p => p.id === 'muscu_standard') || {}).items || []);
+    setUserGoals('');
+    setUserWeight('');
+    setUserAge('');
+    setUserHeight('');
+    setCurrentWeekPlan(null);
+    setWeekNumber(1);
+    setLogs({});
+    setWeekHistory([]);
+    setChatMessages([]);
+    setPendingPlanUpdate(null);
+    setExerciseProgression([]);
+    setSessionCalories({});
+    setExerciseOrder({});
+    setSessionTimer(0);
+    setIsTimerRunning(false);
+    localStorage.removeItem('fitcoach_idb_migrated');
+    setCurrentTab('setup');
+    setMessage('Toutes tes donnees ont ete supprimees');
+  }).catch((e) => {
+    setMessage('Erreur lors de la suppression des donnees: ' + e.message);
+  });
+};
+
 const globalStatsByType = computeGlobalStatsByType();
 const totalSessionsCompleted = weekHistory.reduce((sum, w) => sum + ((w.plan.days || []).length), 0);
 const totalVolumeAllTime = weekHistory.reduce((sum, w) => sum + computeWeekTotalVolume(w), 0);
@@ -1045,6 +1265,11 @@ return (
 <button onClick={generateWeekPlan} disabled={loading}>
 {loading ? (<><span className="spinner"></span>Génération...</>) : ('🚀 Générer Plan Semaine ' + weekNumber)}
 </button>
+<div className="dashboard-block">
+<h2 className="section-title">Gerer mes donnees</h2>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes donnees (configuration, plans, historique) sont stockees dans IndexedDB : elles survivent a la suppression de l'historique de navigation. Utilise ce bouton pour tout effacer definitivement de l'application.</p>
+<button type="button" className="btn-danger" onClick={handleDeleteAllData}>Supprimer TOUTES mes donnees de l'app</button>
+</div>
 </div>
 )}
 
