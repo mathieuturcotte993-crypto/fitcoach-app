@@ -1784,7 +1784,21 @@ const logged = logs[key] || {};
 const sets = logged.series || [];
 const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + logModalFrame + '.jpg') : null;
 const typeNorm = normalizeText(logModal.type || '');
-const isCardioType = /cardio|running|course|velo|cycl|rando|hike|marche/.test(typeNorm);
+const isMixedType = /crossfit|wod|mixte/.test(typeNorm);
+const isCardioOnly = !isMixedType && /cardio|running|course|velo|cycl|rando|hike|marche/.test(typeNorm);
+const showStrengthFields = isMixedType || !isCardioOnly;
+const showCardioFields = isMixedType || isCardioOnly;
+const showHeartRateField = isMixedType || isCardioOnly;
+const computeAllureStr = (distanceVal, timeVal) => {
+const dist = parseFloat(distanceVal);
+const timeMin = parseTimeToMinutes(timeVal);
+if (!dist || dist <= 0 || !timeMin || timeMin <= 0) return '';
+const totalSeconds = Math.round((timeMin / dist) * 60);
+const m = Math.floor(totalSeconds / 60);
+const s = totalSeconds % 60;
+return m + ':' + String(s).padStart(2, '0');
+};
+const exerciseElapsedSec = logged.exerciseStartTime ? Math.max(0, Math.round(((logged.exerciseEndTime ? new Date(logged.exerciseEndTime) : new Date()) - new Date(logged.exerciseStartTime)) / 1000)) : null;
 return (
 <div className="modal-overlay" onClick={closeLogModal}>
 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -1799,7 +1813,7 @@ return (
 <div className="modal-media-fallback">🎥<br />Démo visuelle non disponible pour cet exercice</div>
 )}
 </div>
-{!isCardioType && sets.length > 0 && (
+{showStrengthFields && sets.length > 0 && (
 <div className="sets-recorded-list">
 {sets.map((s, si) => (
 <div key={si} className="set-recorded-row">
@@ -1809,7 +1823,7 @@ return (
 ))}
 </div>
 )}
-{!isCardioType && (
+{showStrengthFields && (
 <div className="set-input-row">
 <label>{'Série ' + (sets.length + 1)}</label>
 <div className="set-input-fields">
@@ -1839,24 +1853,25 @@ return (
 </div>
 </div>
 )}
+{exerciseElapsedSec != null && (
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginTop: '10px'}}>{'⏱️ Durée calc: ' + formatMMSS(exerciseElapsedSec)}</p>
+)}
 </div>
 )}
 <div className="optional-extra-fields">
-{isCardioType ? (
+{showCardioFields && (
 <React.Fragment>
 <p className="section-title" style={{fontSize: '13px', marginTop: '4px'}}>Détails de la séance</p>
-<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value})} />
-<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value})} />
-<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
-<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
-</React.Fragment>
-) : (
-<React.Fragment>
-<p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
-<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
-<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
+<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value, allure: computeAllureStr(e.target.value, logged.time)})} />
+<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value, allure: computeAllureStr(logged.distance, e.target.value)})} />
+{logged.allure && (<p style={{fontSize: '12px', color: 'var(--orange-light)', margin: '-6px 0 10px'}}>{'🏃 Allure: ' + logged.allure + ' par km'}</p>)}
 </React.Fragment>
 )}
+{showHeartRateField && (
+<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
+)}
+<p className="section-title" style={{fontSize: '13px', marginTop: (showCardioFields || showHeartRateField) ? '10px' : '14px'}}>Notes</p>
+<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
 </div>
 <button type="button" className="btn-secondary" style={{marginTop: '12px'}} onClick={closeLogModal}>🏁 TERMINER CET EXERCICE</button>
 </div>
