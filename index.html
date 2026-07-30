@@ -497,6 +497,29 @@ function savePlan(weekNum, planData) { return idbPut('plans', 'week_' + weekNum,
 function loadPlan(weekNum) { return idbGet('plans', 'week_' + weekNum).catch((e) => { console.error('loadPlan error', e); return null; }); }
 function saveToHistory(weekEntry) { return idbPut('history', 'week_' + weekEntry.week, weekEntry); }
 function loadHistory() { return idbGetAll('history').then((arr) => arr.slice().sort((a, b) => (a.week || 0) - (b.week || 0))).catch((e) => { console.error('loadHistory error', e); return []; }); }
+function countLogKeys(obj) { return (obj && typeof obj === 'object') ? Object.keys(obj).length : 0; }
+function savePlanSafe(weekNum, planData, allowReset) {
+  return loadPlan(weekNum).then((prev) => {
+    const prevCount = countLogKeys(prev && prev.logs);
+    const nextCount = countLogKeys(planData && planData.logs);
+    if (!allowReset && prevCount > 0 && nextCount === 0) {
+      console.warn('[FitCoach] Sauvegarde annulee : refus d ecraser ' + prevCount + ' exercice(s) par un plan vide.');
+      return 'blocked';
+    }
+    return savePlan(weekNum, planData);
+  });
+}
+function saveHistorySafe(list, allowReset) {
+  return loadHistory().then((prev) => {
+    const prevLen = (prev && prev.length) || 0;
+    const nextLen = (list && list.length) || 0;
+    if (!allowReset && prevLen > 0 && nextLen === 0) {
+      console.warn('[FitCoach] Historique preserve : refus d effacer ' + prevLen + ' semaine(s).');
+      return 'blocked';
+    }
+    return idbClearStore('history').then(() => (list || []).reduce((chain, w) => chain.then(() => saveToHistory(w)), Promise.resolve()));
+  });
+}
 function saveWeightEntry(dateStr, weightVal) { return idbPut('weights', dateStr, { date: dateStr, weight: weightVal }).catch((e) => { console.error('saveWeightEntry error', e); }); }
 function loadWeights() { return idbGetAll('weights').catch((e) => { console.error('loadWeights error', e); return []; }); }
 function deleteAllData() { return Promise.all(['config', 'plans', 'history', 'weights'].map((s) => idbClearStore(s))); }
@@ -550,12 +573,12 @@ function restoreSyncSnapshot(payload) {
   });
 }
 
-function syncRequest(action, code, data) {
+function syncRequest(action, code, data, extra) {
   return fetch('/api/data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     cache: 'no-store',
-    body: JSON.stringify({ action: action, code: code, data: data })
+    body: JSON.stringify(Object.assign({ action: action, code: code, data: data }, extra || {}))
   }).then((r) => r.json().catch(() => ({})).then((j) => ({ status: r.status, body: j || {} })));
 }
 
@@ -660,6 +683,10 @@ useEffect(() => {
 chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
 }, [chatMessages, pendingPlanUpdate]);
 const [dataReady, setDataReady] = useState(false);
+const [loadFailed, setLoadFailed] = useState(false);
+const [syncVersions, setSyncVersions] = useState(null);
+const allowPlanReset = useRef(false);
+const allowHistoryReset = useRef(false);
 
 useEffect(() => {
   let cancelled = false;
@@ -746,8 +773,8 @@ if (planData.dayWorkoutTimes) setDayWorkoutTimes(planData.dayWorkoutTimes);
     } catch (e) {
       console.error('Erreur initialisation IndexedDB', e);
       if (!cancelled) {
-        setMessage('Erreur IndexedDB: ' + (e && e.message ? e.message : 'inconnue'));
-        setDataReady(true);
+        setLoadFailed(true);
+        setMessage('\u26a0\ufe0f Impossible de lire tes donnees. La sauvegarde est desactivee pour ne rien ecraser : recharge la page.');
       }
     }
   }
@@ -756,7 +783,7 @@ if (planData.dayWorkoutTimes) setDayWorkoutTimes(planData.dayWorkoutTimes);
 }, []);
 
 useEffect(() => {
-  if (!dataReady) return;
+  if (!dataReady || loadFailed) return;
   saveConfig({
     apiKey: apiKey, userLevel: userLevel, userEquipmentList: userEquipmentList, userGoals: userGoals,
     userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: weekNumber,
@@ -765,28 +792,26 @@ useEffect(() => {
     userTrainingDays: userTrainingDays, userTrainingTypes: userTrainingTypes, userConstraints: userConstraints,
     chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
   }).catch((e) => setMessage('Erreur sauvegarde config (IndexedDB): ' + e.message));
-}, [dataReady, apiKey, userLevel, userEquipmentList, userGoals, userWeight, userAge, userHeight, weekNumber, chatMessages, pendingPlanUpdate, exerciseProgression, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, userPlaces]);
+}, [dataReady, loadFailed, apiKey, userLevel, userEquipmentList, userGoals, userWeight, userAge, userHeight, weekNumber, chatMessages, pendingPlanUpdate, exerciseProgression, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, userPlaces]);
 
 useEffect(() => {
-  if (!dataReady) return;
-  savePlan(weekNumber, { weekNumber: weekNumber, currentWeekPlan: currentWeekPlan, logs: logs, dayWorkoutTimes: dayWorkoutTimes, exerciseOrder: exerciseOrder, sessionCalories: sessionCalories })
+  if (!dataReady || loadFailed) return;
+  const allow = allowPlanReset.current;
+  allowPlanReset.current = false;
+  savePlanSafe(weekNumber, { weekNumber: weekNumber, currentWeekPlan: currentWeekPlan, logs: logs, dayWorkoutTimes: dayWorkoutTimes, exerciseOrder: exerciseOrder, sessionCalories: sessionCalories }, allow)
     .catch((e) => setMessage('Erreur sauvegarde plan (IndexedDB): ' + e.message));
-}, [dataReady, weekNumber, currentWeekPlan, logs, dayWorkoutTimes, exerciseOrder, sessionCalories]);
+}, [dataReady, loadFailed, weekNumber, currentWeekPlan, logs, dayWorkoutTimes, exerciseOrder, sessionCalories]);
 
 useEffect(() => {
-  if (!dataReady) return;
-  (async () => {
-    try {
-      await idbClearStore('history');
-      for (let i = 0; i < weekHistory.length; i++) { await saveToHistory(weekHistory[i]); }
-    } catch (e) {
-      setMessage('Erreur sauvegarde historique (IndexedDB): ' + e.message);
-    }
-  })();
-}, [dataReady, weekHistory]);
+  if (!dataReady || loadFailed) return;
+  const allow = allowHistoryReset.current;
+  allowHistoryReset.current = false;
+  saveHistorySafe(weekHistory, allow)
+    .catch((e) => setMessage('Erreur sauvegarde historique (IndexedDB): ' + e.message));
+}, [dataReady, loadFailed, weekHistory]);
 
 useEffect(() => {
-  if (!dataReady || !userWeight) return;
+  if (!dataReady || loadFailed || !userWeight) return;
   const today = new Date().toISOString().slice(0, 10);
   saveWeightEntry(today, userWeight);
 }, [dataReady, userWeight]);
@@ -1610,6 +1635,8 @@ setMessage('\u2705 Historique mis a jour');
 
 const deleteLogEntry = (scope, weekIdx, dayIdx, exIdx, name) => {
 if (!window.confirm('Supprimer les donnees enregistrees pour "' + name + '" ? Cette action est irreversible.')) return;
+allowPlanReset.current = true;
+allowHistoryReset.current = true;
 writeLogPatch(scope, weekIdx, dayIdx + '-' + exIdx, null, true);
 setEditLog(null);
 setMessage('\ud83d\uddd1\ufe0f ' + name + ' retire de l historique');
@@ -1656,6 +1683,7 @@ setLoading(false);
 
 const applyPlanUpdate = () => {
 if (!pendingPlanUpdate) return;
+allowPlanReset.current = true;
 setCurrentWeekPlan(pendingPlanUpdate.plan);
 setWeekNumber(pendingPlanUpdate.plan.week || weekNumber);
 setLogs({});
@@ -1689,6 +1717,8 @@ const newProgressionEntries = Object.entries(maxWeightsThisWeek).map(([exerciseN
 if (newProgressionEntries.length) setExerciseProgression(prev => [...prev, ...newProgressionEntries]);
 setWeekHistory(prev => [...prev, { week: currentWeekPlan.week, plan: currentWeekPlan, logs: logs, dayCalories: sessionCalories, completedAt: nowIso }]);
 }
+allowPlanReset.current = true;
+allowHistoryReset.current = true;
 setWeekNumber(prev => prev + 1);
 setCurrentWeekPlan(null);
 setLogs({});
@@ -1704,6 +1734,7 @@ const deleteWeekEntry = (idx) => {
 const w = weekHistory[idx];
 if (!w) return;
 if (!window.confirm('Supprimer définitivement cet entraînement (semaine ' + w.week + ') de ton historique ? Cette action est irréversible.')) return;
+allowHistoryReset.current = true;
 setWeekHistory(prev => prev.filter((_, i) => i !== idx));
 };
 
@@ -1748,16 +1779,29 @@ localStorage.setItem('fitcoachSyncedAt', v);
 setLastSyncAt(v);
 };
 
-const pushSync = (mode) => {
+const pushSync = (mode, force) => {
 if (!syncCode) return Promise.resolve(false);
 setSyncState('saving');
-return buildSyncSnapshot().then((snap) => syncRequest('set', syncCode, snap).then((r) => {
+return buildSyncSnapshot().then((snap) => syncRequest('set', syncCode, snap, force ? { force: true } : null).then((r) => {
 if (r.status === 200 && r.body && r.body.ok) {
 markSynced(snap.updatedAt);
 setSyncState('saved');
 setSyncInfo('');
 if (mode === 'manual') setMessage('\u2601\ufe0f Donnees sauvegardees en ligne');
 return true;
+}
+if (r.status === 409) {
+const nb = (r.body && r.body.current && r.body.current.exercises) || 0;
+const warn = 'Sauvegarde bloquee : le serveur contient ' + nb + ' exercice(s) alors que cet appareil n en a aucun.';
+setSyncState('error');
+setSyncInfo(warn);
+if (mode === 'manual') {
+if (window.confirm(warn + ' Veux-tu quand meme ecraser la sauvegarde en ligne ?')) return pushSync('manual', true);
+setMessage('Sauvegarde en ligne conservee.');
+} else {
+setMessage('\u26a0\ufe0f ' + warn + ' Utilise Restaurer depuis le serveur si tes donnees ont disparu.');
+}
+return false;
 }
 setSyncState('error');
 setSyncInfo(syncErrorLabel(r.status, r.body));
@@ -1836,16 +1880,35 @@ setSyncCodeInput('fit-' + s);
 };
 
 useEffect(() => {
-if (!dataReady || !syncCode || syncPulled) return;
+if (!dataReady || loadFailed || !syncCode || syncPulled) return;
 setSyncPulled(true);
 pullSync('auto');
 }, [dataReady, syncCode, syncPulled]);
 
 useEffect(() => {
-if (!dataReady || !syncCode) return;
+if (!dataReady || loadFailed || !syncCode) return;
 const t = setTimeout(() => { pushSync('auto'); }, 5000);
 return () => clearTimeout(t);
-}, [dataReady, syncCode, logs, currentWeekPlan, weekHistory, weekNumber, dayWorkoutTimes, exerciseOrder, sessionCalories, exerciseProgression, userLevel, userGoals, userEquipmentList, userPlaces, userWeight, userAge, userHeight, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, chatMessages]);
+}, [dataReady, loadFailed, syncCode, logs, currentWeekPlan, weekHistory, weekNumber, dayWorkoutTimes, exerciseOrder, sessionCalories, exerciseProgression, userLevel, userGoals, userEquipmentList, userPlaces, userWeight, userAge, userHeight, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, chatMessages]);
+
+const loadSyncVersions = () => {
+if (!syncCode) return;
+setSyncState('loading');
+syncRequest('versions', syncCode, null).then((r) => {
+if (r.status === 200 && r.body && r.body.ok) { setSyncVersions(r.body.versions || []); setSyncState('idle'); setSyncInfo(''); }
+else { setSyncState('error'); setSyncInfo(syncErrorLabel(r.status, r.body)); }
+}).catch((e) => { setSyncState('error'); setSyncInfo('Erreur: ' + (e.message || e)); });
+};
+
+const restoreSyncVersion = (idx) => {
+if (!syncCode) return;
+if (!window.confirm('Restaurer cette sauvegarde precedente ? Les donnees actuelles de cet appareil seront remplacees.')) return;
+setSyncState('loading');
+syncRequest('getVersion', syncCode, null, { index: idx }).then((r) => {
+if (r.status !== 200 || !r.body || !r.body.ok || !r.body.data) { setSyncState('error'); setSyncInfo(syncErrorLabel(r.status, r.body)); return null; }
+return restoreSyncSnapshot(r.body.data).then(() => { setMessage('Sauvegarde precedente restauree'); setTimeout(() => window.location.reload(), 800); });
+}).catch((e) => { setSyncState('error'); setSyncInfo('Erreur: ' + (e.message || e)); });
+};
 
 const handleDeleteAllData = () => {
   const codeToWipe = (syncCode || '').trim();
@@ -1857,6 +1920,8 @@ const handleDeleteAllData = () => {
     ? syncRequest('delete', codeToWipe).then((res) => (res.status === 200 && res.body && res.body.ok) ? 'ok' : 'fail').catch(() => 'fail')
     : Promise.resolve('none');
   wipeServer.then((serverResult) => deleteAllData().then(() => {
+    allowPlanReset.current = true;
+    allowHistoryReset.current = true;
     setApiKey('');
     setUserLevel('intermediate');
     setUserEquipmentList((EQUIPMENT_PRESETS.find(p => p.id === 'muscu_standard') || {}).items || []);
@@ -1986,6 +2051,18 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 {syncInfo && (<small className="field-hint" style={{color: 'var(--orange-light)'}}>{syncInfo}</small>)}
 <button type="button" style={{marginTop: '10px'}} onClick={() => pushSync('manual')}>⬆️ Sauvegarder maintenant</button>
 <button type="button" className="btn-secondary" style={{marginTop: '8px'}} onClick={() => pullSync('manual')}>⬇️ Restaurer depuis le serveur</button>
+<button type="button" className="btn-secondary" style={{marginTop: '8px'}} onClick={loadSyncVersions}>🕒 Voir les sauvegardes precedentes</button>
+{syncVersions && (
+<div className="recap-box" style={{marginTop: '10px'}}>
+{syncVersions.length === 0 && (<div className="recap-line">Aucune version anterieure enregistree pour le moment.</div>)}
+{syncVersions.map((v) => (
+<div key={v.index} className="edit-series-row">
+<span style={{flex: 1, fontSize: '12px', color: 'var(--text-dim)'}}>{formatSyncDate(v.savedAt) + ' — ' + v.exercises + ' exercice(s)'}</span>
+<button type="button" className="hist-icon-btn" onClick={() => restoreSyncVersion(v.index)}>Restaurer</button>
+</div>
+))}
+</div>
+)}
 </React.Fragment>
 )}
 </div>
