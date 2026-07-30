@@ -673,7 +673,7 @@ return userEquipmentList.map(id => (EQUIPMENT_CATALOG.find(e => e.id === id) || 
 
 const callClaudeAPI = async (messages, system) => {
 if (!apiKey) {
-setMessage("Erreur: Configure ta clé API Claude dans l'onglet Paramètres");
+setMessage("Erreur: Configure ta clé API Claude dans l'onglet Profil");
 return null;
 }
 try {
@@ -716,6 +716,14 @@ if (parts.length === 1) return parts[0];
 if (parts.length === 2) return parts[0] + parts[1] / 60;
 if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
 return 0;
+};
+
+const formatPaceFromStats = (distanceKm, timeMin) => {
+if (!distanceKm || !timeMin) return '';
+const totalSeconds = Math.round((timeMin / distanceKm) * 60);
+const m = Math.floor(totalSeconds / 60);
+const s = totalSeconds % 60;
+return m + ':' + String(s).padStart(2, '0');
 };
 
 const computeDayStats = (weekEntry, dayIdx, day) => {
@@ -856,7 +864,7 @@ return (day.exercises || []).length + ' exercice(s) au programme';
 const totalLine = (day, stats) => {
 const t = (day.type || '').toLowerCase();
 if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' kg soulevés';
-if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) return typeIcon(day.type) + ' Total: ' + stats.distance + ' km';
+if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) return typeIcon(day.type) + ' Total: ' + stats.distance + ' km' + ((stats.distance > 0 && stats.timeMin > 0) ? (' · allure moy. ' + formatPaceFromStats(stats.distance, stats.timeMin) + ' min/km') : '');
 if (t.includes('cardio')) return '❤️ Total: ' + (stats.timeMin > 0 ? stats.timeMin + ' min' : 'N/A');
 return typeIcon(day.type) + ' Séance complétée';
 };
@@ -1068,6 +1076,17 @@ const dwt = dayWorkoutTimes[dayIdx] || {};
 return !!dwt.start && !dwt.end;
 };
 
+const getVisiblePlanDayIndices = () => {
+const days = (currentWeekPlan && currentWeekPlan.days) || [];
+return days.map((d, i) => i).filter((i) => !(dayWorkoutTimes[i] && dayWorkoutTimes[i].end));
+};
+
+const getActivePlanDayIndex = () => {
+const vis = getVisiblePlanDayIndices();
+if (!vis.length) return -1;
+return vis.indexOf(selectedPlanDay) >= 0 ? selectedPlanDay : vis[0];
+};
+
 const finishDayWorkout = async (dayIdx) => {
 if (!currentWeekPlan) return;
 const day = currentWeekPlan.days[dayIdx];
@@ -1166,7 +1185,7 @@ setTimeout(() => setSeriesFeedback(false), 1500);
 
 const generateWeekPlan = async () => {
 if (!apiKey) {
-setMessage("Erreur: Clé API manquante — ajoute-la dans l'onglet Paramètres");
+setMessage("Erreur: Clé API manquante — ajoute-la dans l'onglet Profil");
 return;
 }
 if (!userEquipmentList.length) {
@@ -1252,8 +1271,18 @@ setMessage('Erreur: Impossible de parser le plan. Réessayez.');
 setLoading(false);
 };
 
+const startDayChronoIfNeeded = (dayIndex) => {
+setDayWorkoutTimes(prev => {
+const existing = prev[dayIndex];
+if (existing && existing.start) return prev;
+return { ...prev, [dayIndex]: { start: new Date().toISOString(), end: null } };
+});
+};
+
 const logExercise = (dayIndex, exerciseIndex, data) => {
 const key = dayIndex + '-' + exerciseIndex;
+const hasContent = ['distance', 'time', 'allure', 'heartRate', 'notes'].some((f) => data[f] !== undefined && String(data[f]).trim() !== '');
+if (hasContent) startDayChronoIfNeeded(dayIndex);
 setLogs(prev => ({ ...prev, [key]: { ...prev[key], ...data } }));
 };
 
@@ -1428,11 +1457,11 @@ return (
 </div>
 <div className="content">
 <div className="tab-buttons">
-<button className={'tab-btn ' + (currentTab === 'settings' ? 'active' : '')} onClick={() => setCurrentTab('settings')}>🔧 Paramètres</button>
 <button className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')} onClick={() => setCurrentTab('setup')}>⚙️ Config</button>
 <button className={'tab-btn ' + (currentTab === 'plan' ? 'active' : '')} onClick={() => setCurrentTab('plan')}>📅 Plan</button>
 <button className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')} onClick={() => setCurrentTab('chat')}>💬 Coach IA</button>
 <button className={'tab-btn ' + (currentTab === 'history' ? 'active' : '')} onClick={() => setCurrentTab('history')}>📈 Historique</button>
+<button className={'tab-btn ' + (currentTab === 'settings' ? 'active' : '')} onClick={() => setCurrentTab('settings')}>👤 Profil</button>
 </div>
 {message && (
 <div className={'message ' + (message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info')}>
@@ -1442,7 +1471,7 @@ return (
 
 {currentTab === 'settings' && (
 <div className="tab-panel">
-<h2 style={{marginBottom: '10px', color: 'var(--text)'}}>Paramètres</h2>
+<h2 style={{marginBottom: '10px', color: 'var(--text)'}}>Profil</h2>
 <p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Ta clé API et tes données personnelles sont enregistrées ici, dans ton appareil (IndexedDB).</p>
 <div className="form-group">
 <label>🔑 Clé API Claude</label>
@@ -1467,8 +1496,8 @@ saveConfig({
 apiKey: apiKey, userLevel: userLevel, userEquipmentList: userEquipmentList, userGoals: userGoals,
 userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: weekNumber,
 chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
-}).then(() => setMessage('✅ Paramètres sauvegardés')).catch((e) => setMessage('Erreur sauvegarde: ' + e.message));
-}}>💾 Sauvegarder mes paramètres</button>
+}).then(() => setMessage('✅ Profil sauvegardé')).catch((e) => setMessage('Erreur sauvegarde: ' + e.message));
+}}>💾 Sauvegarder mon profil</button>
 <div className="dashboard-block" style={{marginTop: '22px', borderBottom: 'none', paddingBottom: 0}}>
 <h2 className="section-title">Gérer mes données</h2>
 <p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données (paramètres, configuration, plans, historique) sont stockées dans IndexedDB : elles survivent à la suppression de l'historique de navigation. Utilise ce bouton pour tout effacer définitivement de l'application.</p>
@@ -1480,9 +1509,9 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 {currentTab === 'setup' && (
 <div className="tab-panel">
 <h2 style={{marginBottom: '10px', color: 'var(--text)'}}>Configuration de mon training</h2>
-<p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Cette page sert uniquement à l'élaboration de ton entraînement. Tes informations personnelles se trouvent dans l'onglet 🔧 Paramètres.</p>
+<p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Cette page sert uniquement à l'élaboration de ton entraînement. Tes informations personnelles se trouvent dans l'onglet 👤 Profil.</p>
 {!apiKey && (
-<div className="message info">Ajoute d'abord ta clé API Claude dans l'onglet 🔧 Paramètres pour pouvoir générer un plan.</div>
+<div className="message info">Ajoute d'abord ta clé API Claude dans l'onglet 👤 Profil pour pouvoir générer un plan.</div>
 )}
 <div className="form-group">
 <label>📊 Votre Niveau</label>
@@ -1528,20 +1557,39 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 <button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🔀 Réinitialiser l'ordre</button>
 <button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>✅ Terminer la semaine</button>
 </div>
+{(() => {
+const allDays = currentWeekPlan.days || [];
+const visibleDays = getVisiblePlanDayIndices();
+const activeIdx = getActivePlanDayIndex();
+const doneCount = allDays.length - visibleDays.length;
+return (
+<>
+{visibleDays.length > 0 && (
 <div className="day-tabs">
-{(currentWeekPlan.days || []).map((day, dayIdx) => {
-const dayDone = !!(dayWorkoutTimes[dayIdx] && dayWorkoutTimes[dayIdx].end);
+{visibleDays.map((dayIdx) => {
+const day = allDays[dayIdx];
 const dayRunning = isDayWorkoutRunning(dayIdx);
 return (
-<button key={dayIdx} type="button" className={'day-tab' + (selectedPlanDay === dayIdx ? ' active' : '')} onClick={() => setSelectedPlanDay(dayIdx)}>
+<button key={dayIdx} type="button" className={'day-tab' + (activeIdx === dayIdx ? ' active' : '')} onClick={() => setSelectedPlanDay(dayIdx)}>
 <span className="day-tab-title">{typeIcon(day.type) + ' ' + getDayCondensedLabel(day)}</span>
-<span className="day-tab-sub">{day.day + ' • ' + ((day.exercises || []).length) + ' ex.' + (dayDone ? ' • ✅' : (dayRunning ? ' • ⏱️' : ''))}</span>
+<span className="day-tab-sub">{day.day + ' • ' + ((day.exercises || []).length) + ' ex.' + (dayRunning ? ' • ⏱️' : '')}</span>
 </button>
 );
 })}
 </div>
+)}
+{doneCount > 0 && (
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px'}}>{'✅ ' + doneCount + ' séance' + (doneCount > 1 ? 's' : '') + ' terminée' + (doneCount > 1 ? 's' : '') + ' cette semaine — le détail reste disponible dans l\'onglet 📈 Historique.'}</p>
+)}
+{visibleDays.length === 0 && (
+<div className="message success">🎉 Toutes les séances de la semaine sont terminées ! Clique sur "✅ Terminer la semaine" pour archiver la semaine et passer à la suivante.</div>
+)}
+</>
+);
+})()}
 {(() => {
-const dayIdx = selectedPlanDay;
+const dayIdx = getActivePlanDayIndex();
+if (dayIdx < 0) return null;
 const day = (currentWeekPlan.days || [])[dayIdx];
 if (!day) return null;
 const order = exerciseOrder[dayIdx] || day.exercises.map((_, i) => i);
@@ -1589,7 +1637,7 @@ return (
 <p style={{marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)'}}>
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
-<p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets + (targetSets > 0 && seriesCount > targetSets ? ' (+' + (seriesCount - targetSets) + ' supplémentaire' + (seriesCount - targetSets > 1 ? 's' : '') + ')' : '')) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
+<p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets + (targetSets > 0 && seriesCount > targetSets ? ' (+' + (seriesCount - targetSets) + ' supplémentaire' + (seriesCount - targetSets > 1 ? 's' : '') + ')' : '')) : ((logged.distance || logged.time || logged.notes) ? ('✅ Données enregistrées' + (logged.distance ? (' · ' + logged.distance + ' km') : '') + (logged.time ? (' · ' + logged.time) : '') + (logged.allure ? (' · ' + logged.allure + ' min/km') : '')) : '')}</p>
 <button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type, ex.sets)}>{seriesCount > 0 ? '▶️ CONTINUER CET EXERCICE' : '▶️ COMMENCER CET EXERCICE'}</button>
 </div>
 );
@@ -1957,6 +2005,15 @@ const isCardioOnly = !isMixedType && /cardio|running|course|velo|cycl|rando|hike
 const showStrengthFields = isMixedType || !isCardioOnly;
 const showCardioFields = isMixedType || isCardioOnly;
 const showHeartRateField = isMixedType || isCardioOnly;
+const computeTimeFromPace = (distanceVal, paceVal) => {
+const dist = parseFloat(distanceVal);
+const paceMin = parseTimeToMinutes(paceVal);
+if (!dist || dist <= 0 || !paceMin || paceMin <= 0) return '';
+const totalSeconds = Math.round(dist * paceMin * 60);
+const m = Math.floor(totalSeconds / 60);
+const s = totalSeconds % 60;
+return m + ':' + String(s).padStart(2, '0');
+};
 const computeAllureStr = (distanceVal, timeVal) => {
 const dist = parseFloat(distanceVal);
 const timeMin = parseTimeToMinutes(timeVal);
@@ -2039,9 +2096,22 @@ return (
 {showCardioFields && (
 <React.Fragment>
 <p className="section-title" style={{fontSize: '13px', marginTop: '4px'}}>Détails de la séance</p>
-<input type="number" aria-label="Distance en kilomètres" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value, allure: computeAllureStr(e.target.value, logged.time)})} />
-<input type="text" aria-label="Temps de la séance" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value, allure: computeAllureStr(logged.distance, e.target.value)})} />
-{logged.allure && (<p style={{fontSize: '12px', color: 'var(--orange-light)', margin: '-6px 0 10px'}}>{'🏃 Allure: ' + logged.allure + ' par km'}</p>)}
+<input type="number" aria-label="Distance en kilomètres" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => {
+const d = e.target.value;
+if (logged.allureManual && logged.allure) {
+logExercise(logModal.dayIdx, logModal.exIdx, {distance: d, time: computeTimeFromPace(d, logged.allure) || logged.time});
+} else {
+logExercise(logModal.dayIdx, logModal.exIdx, {distance: d, allure: computeAllureStr(d, logged.time)});
+}
+}} />
+<input type="text" aria-label="Temps de la séance" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value, allure: computeAllureStr(logged.distance, e.target.value), allureManual: false})} />
+<input type="text" inputMode="numeric" aria-label="Allure en minutes par kilomètre" placeholder="Allure / pace (min:sec par km, ex: 5:30)" value={logged.allure || ''} onChange={(e) => {
+const p = e.target.value;
+const t = computeTimeFromPace(logged.distance, p);
+logExercise(logModal.dayIdx, logModal.exIdx, t ? {allure: p, allureManual: true, time: t} : {allure: p, allureManual: true});
+}} />
+{logged.allure && (<p style={{fontSize: '12px', color: 'var(--orange-light)', margin: '-6px 0 10px'}}>{'🏃 Allure: ' + logged.allure + ' min/km' + (logged.allureManual ? ' (saisie manuelle)' : ' (calculée)')}</p>)}
+{!logged.allure && (<p style={{fontSize: '11.5px', color: 'var(--text-dim)', margin: '-6px 0 10px'}}>💡 L'allure se calcule toute seule si tu remplis distance + temps, ou tu peux l'inscrire directement.</p>)}
 </React.Fragment>
 )}
 {showHeartRateField && (
