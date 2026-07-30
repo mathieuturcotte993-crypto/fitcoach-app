@@ -776,7 +776,11 @@ const run = () => {
 if (cancelled) return;
 try {
 if (!el.isConnected) return;
-const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - stickyTopOffset());
+const off = stickyTopOffset();
+const top = el.getBoundingClientRect().top;
+const comfort = Math.max(220, window.innerHeight * 0.45);
+if (top >= off - 4 && top <= comfort) return;
+const target = Math.max(0, top + window.scrollY - off);
 if (Math.abs(target - window.scrollY) < 4) return;
 try { window.scrollTo({ top: target, behavior: 'smooth' }); } catch (e2) { window.scrollTo(0, target); }
 } catch (e) { }
