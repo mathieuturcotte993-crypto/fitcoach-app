@@ -266,7 +266,7 @@ outline: 2px solid var(--orange-light); outline-offset: 2px;
 .recap-box { background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
 .recap-line { font-size: 12.5px; color: var(--text-dim); margin-bottom: 4px; }
 .recap-line b { color: var(--text); font-weight: 600; }
-.field-hint { font-size: 11.5px; color: var(--text-dim); margin: -4px 0 8px; }
+.field-hint { display: block; font-size: 11.5px; color: var(--text-dim); margin: -4px 0 8px; line-height: 1.4; }
 .day-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
 .day-tab { flex: 0 0 auto; width: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); box-shadow: none; text-align: left; }
 .day-tab:hover:not(:disabled) { transform: none; border-color: var(--orange-dark); box-shadow: none; }
@@ -323,6 +323,12 @@ const EQUIPMENT_PRESETS = [
 { id: 'maison', label: '🏠 Maison (équipement léger)', items: ['halteres','bandes_resistance','banc','poids_corps'] },
 { id: 'poids_corps_only', label: '🤸 Poids du corps uniquement', items: ['poids_corps'] }
 ];
+
+function derivePlacesFromEquipment(list) {
+if (!Array.isArray(list) || !list.length) return [];
+const cands = EQUIPMENT_PRESETS.filter(p => p.items.every(it => list.includes(it)));
+return cands.filter(p => !cands.some(o => o.id !== p.id && p.items.every(it => o.items.includes(it)))).map(p => p.id);
+}
 
 const EQUIPMENT_GROUPS = [
 { id: 'muscu', label: '🏋️ Musculation & charges', items: ['halteres','kettlebell','barre_olympique','rack_squat','banc','machines_guidees','poulie_cable'] },
@@ -506,6 +512,17 @@ const [userGoals, setUserGoals] = useState(() => localStorage.getItem('userGoals
 const [userWeight, setUserWeight] = useState(() => localStorage.getItem('userWeight') || '');
 const [userAge, setUserAge] = useState(() => localStorage.getItem('userAge') || '');
 const [userHeight, setUserHeight] = useState(() => localStorage.getItem('userHeight') || '');
+const [userPlaces, setUserPlaces] = useState(() => {
+try {
+const saved = localStorage.getItem('userEquipmentList');
+const list = saved ? JSON.parse(saved) : null;
+if (Array.isArray(list) && list.length) return derivePlacesFromEquipment(list);
+} catch (e) {}
+const old = localStorage.getItem('userEquipment');
+if (old === 'halteres') return ['maison'];
+if (old === 'poids_corps') return ['poids_corps_only'];
+return ['muscu_standard'];
+});
 const [userSessionsPerWeek, setUserSessionsPerWeek] = useState(() => localStorage.getItem('userSessionsPerWeek') || '5');
 const [userSessionDuration, setUserSessionDuration] = useState(() => localStorage.getItem('userSessionDuration') || '60');
 const [userTrainingDays, setUserTrainingDays] = useState(() => {
@@ -615,6 +632,11 @@ useEffect(() => {
           setUserHeight(idbConfig.userHeight || '');
           if (idbConfig.userSessionsPerWeek) setUserSessionsPerWeek(String(idbConfig.userSessionsPerWeek));
           if (idbConfig.userSessionDuration) setUserSessionDuration(String(idbConfig.userSessionDuration));
+          if (Array.isArray(idbConfig.userPlaces)) {
+            setUserPlaces(idbConfig.userPlaces);
+          } else if (Array.isArray(idbConfig.userEquipmentList) && idbConfig.userEquipmentList.length) {
+            setUserPlaces(derivePlacesFromEquipment(idbConfig.userEquipmentList));
+          }
           if (Array.isArray(idbConfig.userTrainingDays)) setUserTrainingDays(idbConfig.userTrainingDays);
           if (Array.isArray(idbConfig.userTrainingTypes) && idbConfig.userTrainingTypes.length) setUserTrainingTypes(idbConfig.userTrainingTypes);
           setUserConstraints(idbConfig.userConstraints || '');
@@ -656,10 +678,11 @@ useEffect(() => {
     apiKey: apiKey, userLevel: userLevel, userEquipmentList: userEquipmentList, userGoals: userGoals,
     userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: weekNumber,
     userSessionsPerWeek: userSessionsPerWeek, userSessionDuration: userSessionDuration,
+    userPlaces: userPlaces,
     userTrainingDays: userTrainingDays, userTrainingTypes: userTrainingTypes, userConstraints: userConstraints,
     chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
   }).catch((e) => setMessage('Erreur sauvegarde config (IndexedDB): ' + e.message));
-}, [dataReady, apiKey, userLevel, userEquipmentList, userGoals, userWeight, userAge, userHeight, weekNumber, chatMessages, pendingPlanUpdate, exerciseProgression, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints]);
+}, [dataReady, apiKey, userLevel, userEquipmentList, userGoals, userWeight, userAge, userHeight, weekNumber, chatMessages, pendingPlanUpdate, exerciseProgression, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, userPlaces]);
 
 useEffect(() => {
   if (!dataReady) return;
@@ -740,10 +763,36 @@ const toggleInList = (list, setList, value) => {
 setList(list.includes(value) ? list.filter(x => x !== value) : [...list, value]);
 };
 
-const getActivePresetId = () => {
-const cur = userEquipmentList.slice().sort().join('|');
-const found = EQUIPMENT_PRESETS.find(p => p.items.slice().sort().join('|') === cur);
-return found ? found.id : null;
+const getPlacesEquipment = (placeIds) => {
+const out = [];
+(placeIds || []).forEach(pid => {
+const p = EQUIPMENT_PRESETS.find(x => x.id === pid);
+if (p) p.items.forEach(it => { if (!out.includes(it)) out.push(it); });
+});
+return out;
+};
+
+const getPlaceLabels = () => userPlaces.map(pid => {
+const p = EQUIPMENT_PRESETS.find(x => x.id === pid);
+return p ? p.label.replace(/^[^ ]+ /, '') : null;
+}).filter(Boolean);
+
+const togglePlace = (pid) => {
+const preset = EQUIPMENT_PRESETS.find(x => x.id === pid);
+if (!preset) return;
+const wasActive = userPlaces.includes(pid);
+const nextPlaces = wasActive ? userPlaces.filter(x => x !== pid) : [...userPlaces, pid];
+setUserPlaces(nextPlaces);
+if (wasActive) {
+const keep = getPlacesEquipment(nextPlaces);
+setUserEquipmentList(prev => prev.filter(it => keep.includes(it) || !preset.items.includes(it)));
+} else {
+setUserEquipmentList(prev => {
+const next = prev.slice();
+preset.items.forEach(it => { if (!next.includes(it)) next.push(it); });
+return next;
+});
+}
 };
 
 const getLevelLabel = () => {
@@ -752,10 +801,15 @@ return l ? l.label : userLevel;
 };
 
 const getEquipmentSummary = () => {
-const preset = EQUIPMENT_PRESETS.find(p => p.id === getActivePresetId());
-if (preset) return preset.label.replace(/^[^ ]+ /, '');
-if (!userEquipmentList.length) return 'Aucun équipement';
-return userEquipmentList.length + ' équipements';
+const labels = getPlaceLabels();
+const nb = userEquipmentList.length;
+if (labels.length) {
+let txt = labels.join(' + ');
+if (txt.length > 44) txt = labels.length + ' lieux';
+return txt + ' · ' + nb + ' équipement' + (nb > 1 ? 's' : '');
+}
+if (!nb) return 'Aucun équipement';
+return nb + ' équipements';
 };
 
 const getGoalsSummary = () => {
@@ -1350,10 +1404,15 @@ progressionNote += ' Poids maximums soulevés la semaine précédente (par exerc
 const nbSessions = parseInt(userSessionsPerWeek, 10) || 5;
 const daysText = userTrainingDays.length ? userTrainingDays.join(', ') : 'au choix (repartis intelligemment dans la semaine)';
 const typesText = userTrainingTypes.length ? userTrainingTypes.join(', ') : 'Musculation, Running, Crossfit, Cardio, Vélo, Randonnée';
+const placesText = userPlaces.map(pid => {
+const p = EQUIPMENT_PRESETS.find(x => x.id === pid);
+return p ? p.label.replace(/^[^ ]+ /, '') : pid;
+}).join(' + ');
 const prompt = "Crée un plan d'entraînement complet pour une semaine (" + nbSessions + " séances) pour quelqu'un:\n" +
 '- Niveau: ' + userLevel + '\n' +
 '- Objectifs: ' + userGoals + '\n' +
 '- Équipement disponible: ' + equipmentDescriptionText() + '\n' +
+(placesText ? '- Lieux d entrainement accessibles cette semaine: ' + placesText + ' (tu peux varier les seances selon le lieu, en utilisant l equipement propre a chacun)\n' : '') +
 '- Nombre de séances dans la semaine: ' + nbSessions + ' (exactement ' + nbSessions + ' objets dans "days")\n' +
 '- Durée visée par séance: environ ' + (parseInt(userSessionDuration, 10) || 60) + ' minutes\n' +
 '- Jours disponibles: ' + daysText + '\n' +
@@ -1532,6 +1591,7 @@ const handleDeleteAllData = () => {
     setApiKey('');
     setUserLevel('intermediate');
     setUserEquipmentList((EQUIPMENT_PRESETS.find(p => p.id === 'muscu_standard') || {}).items || []);
+    setUserPlaces(['muscu_standard']);
     setUserGoals('');
     setUserWeight('');
     setUserAge('');
@@ -1707,12 +1767,16 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 {openSetupStep === 2 && (
 <div className="setup-step-body">
 <div className="form-group">
-<label>📍 Où t'entraînes-tu ?</label>
+<label>📍 Où t'entraînes-tu ? <span style={{color: 'var(--text-dim)', fontWeight: 'normal'}}>(plusieurs choix possibles)</span></label>
 <div className="place-list">
 {EQUIPMENT_PRESETS.map(p => (
-<button type="button" key={p.id} className={'place-btn' + (getActivePresetId() === p.id ? ' active' : '')} onClick={() => setUserEquipmentList(p.items)}>{(getActivePresetId() === p.id ? '✅ ' : '') + p.label}</button>
+<button type="button" key={p.id} className={'place-btn' + (userPlaces.includes(p.id) ? ' active' : '')} onClick={() => togglePlace(p.id)}>{(userPlaces.includes(p.id) ? '✅ ' : '➕ ') + p.label}</button>
 ))}
 </div>
+<small className="field-hint">Coche tous les endroits où tu peux t'entraîner cette semaine : leur équipement s'additionne. Reclique sur un lieu pour le retirer.</small>
+{userPlaces.length > 1 && (
+<small className="field-hint" style={{color: 'var(--orange)'}}>🔗 {getPlaceLabels().join(' + ')} — {userEquipmentList.length} équipements combinés disponibles pour ton plan.</small>
+)}
 </div>
 <div className="equip-bar">
 <button type="button" className="link-btn" onClick={() => setShowEquipmentDetail(!showEquipmentDetail)}>{(showEquipmentDetail ? '▲ Masquer le détail' : '▼ Personnaliser mon matériel') + ' (' + userEquipmentList.length + ' sélectionné' + (userEquipmentList.length > 1 ? 's' : '') + ')'}</button>
