@@ -345,6 +345,10 @@ body { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
 .day-tabs::-webkit-scrollbar { display: none; height: 0; }
 .day-tabs { scroll-snap-type: x proximity; }
 .day-tab { scroll-snap-align: center; }
+.btn-secondary.danger { color: var(--red); border-color: rgba(255,92,92,0.5); }
+.btn-secondary.danger:hover:not(:disabled) { color: #fff; background: rgba(255,92,92,0.16); border-color: var(--red); box-shadow: none; }
+.btn-remove-exercise { width: auto; margin-top: 8px; background: transparent; color: var(--text-dim); border: 1px solid var(--border); box-shadow: none; font-size: 11.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px; }
+.btn-remove-exercise:hover:not(:disabled) { color: var(--red); border-color: var(--red); background: rgba(255,92,92,0.08); transform: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
 </style>
 </head>
@@ -762,6 +766,7 @@ const [loadFailed, setLoadFailed] = useState(false);
 const [syncVersions, setSyncVersions] = useState(null);
 const allowPlanReset = useRef(false);
 const allowHistoryReset = useRef(false);
+const forceNextPush = useRef(false);
 
 useEffect(() => {
   let cancelled = false;
@@ -1879,6 +1884,7 @@ const deleteLogEntry = (scope, weekIdx, dayIdx, exIdx, name) => {
 if (!window.confirm('Supprimer les donnees enregistrees pour "' + name + '" ? Cette action est irreversible.')) return;
 allowPlanReset.current = true;
 allowHistoryReset.current = true;
+forceNextPush.current = true;
 writeLogPatch(scope, weekIdx, dayIdx + '-' + exIdx, null, true);
 setEditLog(null);
 setMessage('\ud83d\uddd1\ufe0f ' + name + ' retire de l historique');
@@ -1973,16 +1979,88 @@ setMessage('');
 setCurrentTab('setup');
 };
 
+const reindexLogsAfterExerciseRemoval = (logsObj, dayIdx, exIdx) => {
+const next = {};
+Object.entries(logsObj || {}).forEach(([key, val]) => {
+const sep = key.indexOf('-');
+if (sep === -1) { next[key] = val; return; }
+const dIdx = parseInt(key.slice(0, sep), 10);
+const eIdx = parseInt(key.slice(sep + 1), 10);
+if (isNaN(dIdx) || isNaN(eIdx)) { next[key] = val; return; }
+if (dIdx !== dayIdx) { next[key] = val; return; }
+if (eIdx === exIdx) return;
+next[dIdx + '-' + (eIdx > exIdx ? eIdx - 1 : eIdx)] = val;
+});
+return next;
+};
+
+const resetCurrentPlan = () => {
+if (!window.confirm('Reinitialiser le plan de la semaine en cours ? Le plan et les series enregistrees cette semaine seront effaces. Tes semaines terminees dans l historique ne sont pas touchees.')) return;
+allowPlanReset.current = true;
+forceNextPush.current = true;
+setCurrentWeekPlan(null);
+setLogs({});
+setExerciseOrder({});
+setDayWorkoutTimes({});
+setSessionCalories({});
+setSelectedPlanDay(0);
+setPendingPlanUpdate(null);
+haptic([14, 45, 18]);
+setMessage("✅ Plan reinitialise — genere un nouveau plan dans l'onglet Config");
+setCurrentTab('setup');
+};
+
+const deletePlanExercise = (dayIdx, exIdx) => {
+const day = (currentWeekPlan && currentWeekPlan.days) ? currentWeekPlan.days[dayIdx] : null;
+const ex = (day && day.exercises) ? day.exercises[exIdx] : null;
+if (!ex) return;
+if (!window.confirm('Retirer "' + ex.name + '" de cette seance ? Les series deja enregistrees pour cet exercice seront aussi supprimees.')) return;
+allowPlanReset.current = true;
+forceNextPush.current = true;
+setCurrentWeekPlan(prev => {
+if (!prev) return prev;
+const days = (prev.days || []).map((d, di) => (di !== dayIdx ? d : { ...d, exercises: (d.exercises || []).filter((_, ei) => ei !== exIdx) }));
+return { ...prev, days: days };
+});
+setLogs(prev => reindexLogsAfterExerciseRemoval(prev, dayIdx, exIdx));
+setExerciseOrder(prev => {
+const next = { ...(prev || {}) };
+if (Array.isArray(next[dayIdx])) next[dayIdx] = next[dayIdx].filter(i => i !== exIdx).map(i => (i > exIdx ? i - 1 : i));
+return next;
+});
+haptic(14);
+setMessage('🗑️ Exercice retire du plan');
+};
+
+const deleteHistoryExercise = (weekIdx, dayIdx, exIdx) => {
+const wk = weekHistory[weekIdx];
+const day = (wk && wk.plan && wk.plan.days) ? wk.plan.days[dayIdx] : null;
+const ex = (day && day.exercises) ? day.exercises[exIdx] : null;
+if (!ex) return;
+if (!window.confirm('Retirer definitivement "' + ex.name + '" de cette seance de ton historique ? Cette action est irreversible.')) return;
+allowHistoryReset.current = true;
+forceNextPush.current = true;
+setWeekHistory(prev => prev.map((w, i) => {
+if (i !== weekIdx) return w;
+const days = ((w.plan && w.plan.days) || []).map((d, di) => (di !== dayIdx ? d : { ...d, exercises: (d.exercises || []).filter((_, ei) => ei !== exIdx) }));
+return { ...w, plan: { ...w.plan, days: days }, logs: reindexLogsAfterExerciseRemoval(w.logs, dayIdx, exIdx) };
+}));
+haptic(14);
+setMessage("🗑️ Exercice retire de l'historique");
+};
+
 const deleteWeekEntry = (idx) => {
 const w = weekHistory[idx];
 if (!w) return;
-if (!window.confirm('Supprimer définitivement cet entraînement (semaine ' + w.week + ') de ton historique ? Cette action est irréversible.')) return;
+if (!window.confirm('Supprimer définitivement cette semaine terminée le ' + new Date(w.completedAt).toLocaleDateString('fr-FR') + ' de ton historique ? Cette action est irréversible.')) return;
 allowHistoryReset.current = true;
 setWeekHistory(prev => prev.filter((_, i) => i !== idx));
 };
 
 const deleteDayFromWeek = (weekIdx, dayIdx) => {
 if (!window.confirm('Supprimer cette séance de ton historique ? Cette action est irréversible.')) return;
+allowHistoryReset.current = true;
+forceNextPush.current = true;
 setWeekHistory(prev => prev.map((w, i) => {
 if (i !== weekIdx) return w;
 const newDays = (w.plan.days || []).filter((_, di) => di !== dayIdx);
@@ -2000,6 +2078,8 @@ return { ...w, plan: { ...w.plan, days: newDays }, logs: newLogs };
 
 const deleteExerciseLog = (weekIdx, dayIdx, exIdx) => {
 if (!window.confirm('Supprimer les données de cet exercice complété ? Cette action est irréversible.')) return;
+allowHistoryReset.current = true;
+forceNextPush.current = true;
 setWeekHistory(prev => prev.map((w, i) => {
 if (i !== weekIdx) return w;
 const newLogs = { ...(w.logs || {}) };
@@ -2130,7 +2210,7 @@ pullSync('auto');
 
 useEffect(() => {
 if (!dataReady || loadFailed || !syncCode) return;
-const t = setTimeout(() => { pushSync('auto'); }, 5000);
+const t = setTimeout(() => { const f = forceNextPush.current; forceNextPush.current = false; pushSync('auto', f); }, 5000);
 return () => clearTimeout(t);
 }, [dataReady, loadFailed, syncCode, logs, currentWeekPlan, weekHistory, weekNumber, dayWorkoutTimes, exerciseOrder, sessionCalories, exerciseProgression, userLevel, userGoals, userEquipmentList, userPlaces, userWeight, userAge, userHeight, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, chatMessages]);
 
@@ -2515,7 +2595,7 @@ return (
 <div className="message info">{'⚠️ ' + setupBlockingReason()}</div>
 )}
 <button onClick={() => generateWeekPlan(prepMessages)} disabled={loading || prepLoading || !!setupBlockingReason()}>
-{loading ? (<><span className="spinner"></span>Génération...</>) : ((visiblePrepMessages().length ? '🚀 Générer le plan à partir de la discussion — Semaine ' : '🚀 Générer le plan — Semaine ') + weekNumber)}
+{loading ? (<><span className="spinner"></span>Génération...</>) : (visiblePrepMessages().length ? '🚀 Générer le plan à partir de la discussion' : '🚀 Générer le plan de la semaine')}
 </button>
 </div>
 )}
@@ -2523,9 +2603,10 @@ return (
 {currentTab === 'plan' && currentWeekPlan && (
 <div className="tab-panel">
 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '15px', flexWrap: 'wrap'}}>
-<h2 style={{color: 'var(--text)'}}>Semaine {currentWeekPlan.week}</h2>
+<h2 style={{color: 'var(--text)'}}>Semaine en cours</h2>
 <button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🔀 Réinitialiser l'ordre</button>
 <button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>✅ Terminer la semaine</button>
+<button className="btn-secondary danger" onClick={resetCurrentPlan} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🗑️ Réinitialiser le plan</button>
 </div>
 {(() => {
 const allDays = currentWeekPlan.days || [];
@@ -2609,6 +2690,7 @@ return (
 </p>
 <p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets + (targetSets > 0 && seriesCount > targetSets ? ' (+' + (seriesCount - targetSets) + ' supplémentaire' + (seriesCount - targetSets > 1 ? 's' : '') + ')' : '')) : ((logged.distance || logged.time || logged.notes) ? ('✅ Données enregistrées' + (logged.distance ? (' · ' + logged.distance + ' km') : '') + (logged.time ? (' · ' + logged.time) : '') + (logged.allure ? (' · ' + logged.allure + ' min/km') : '')) : '')}</p>
 <button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type, ex.sets)}>{seriesCount > 0 ? '▶️ CONTINUER CET EXERCICE' : '▶️ COMMENCER CET EXERCICE'}</button>
+<button type="button" className="btn-remove-exercise" onClick={(e) => { e.stopPropagation(); deletePlanExercise(dayIdx, exIdx); }} title="Retirer cet exercice du plan">🗑️ Retirer cet exercice</button>
 </div>
 );
 })}
@@ -2638,7 +2720,7 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 {pendingPlanUpdate && pendingPlanUpdate.forIndex === idx && (
 <div className="plan-update-card">
 <div className="plan-update-title">🔄 Modification de plan proposée</div>
-<p>Le coach souhaite mettre à jour ton plan d'entraînement de la semaine {pendingPlanUpdate.plan.week || weekNumber}. Veux-tu appliquer ces changements ?</p>
+<p>Le coach souhaite mettre à jour ton plan d'entraînement de la semaine en cours. Veux-tu appliquer ces changements ?</p>
 <div className="plan-update-actions">
 <button className="btn-confirm" onClick={applyPlanUpdate}>✅ Appliquer</button>
 <button className="btn-reject" onClick={rejectPlanUpdate}>❌ Ignorer</button>
@@ -2747,7 +2829,7 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
           ) : (
             selectedEntries.map((entry, i) => (
               <div key={i} className="calendar-day-entry">
-                <div className="calendar-day-entry-header">{typeIcon(entry.day.type) + ' ' + entry.day.day + ' \u2014 ' + entry.day.type + (entry.isCurrent ? ' (semaine en cours)' : ' (semaine ' + entry.week + ')')}</div>
+                <div className="calendar-day-entry-header">{typeIcon(entry.day.type) + ' ' + entry.day.day + ' \u2014 ' + entry.day.type + (entry.isCurrent ? ' (semaine en cours)' : ' (semaine terminée)')}</div>
                 <div className="calendar-day-entry-summary">{summaryLine(entry.day, entry.stats)}</div>
               </div>
             ))
@@ -2762,7 +2844,7 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 {currentWeekPlan && Object.keys(logs).some((k) => { const l = logs[k]; return l && (((l.series || []).length > 0) || l.distance || l.time); }) && (
 <div className="history-week" style={{borderLeftColor: 'var(--green)'}}>
 <div className="history-week-header">
-<h3>{'🟢 Semaine ' + currentWeekPlan.week + ' — En cours'}</h3>
+<h3>{'🟢 Semaine en cours'}</h3>
 </div>
 <p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume({ plan: currentWeekPlan, logs: logs }) + ' kg cumulés (semaine en cours)'}</p>
 {(currentWeekPlan.days || []).map((day, dayIdx) => {
@@ -2797,7 +2879,8 @@ return (
 <div className="workout-card-exercise-name">{ex.name}</div>
 <div className="hist-actions">
 <button type="button" className="hist-icon-btn" title="Modifier les resultats" onClick={() => openEditLog('current', -1, dayIdx, exIdx, ex.name, log)}>✏️ Modifier</button>
-<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('current', -1, dayIdx, exIdx, ex.name)}>🗑️ Supprimer</button>
+<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('current', -1, dayIdx, exIdx, ex.name)}>🗑️ Effacer les résultats</button>
+<button type="button" className="hist-icon-btn danger" title="Retirer cet exercice du plan de la semaine" onClick={() => deletePlanExercise(dayIdx, exIdx)}>❌ Retirer l'exercice</button>
 </div>
 <div className="workout-card-exercise-detail">
 {'Réalisé: '}
@@ -2865,7 +2948,7 @@ const heightPct = Math.max((vol / maxVol) * 100, 4);
 return (
 <div className="chart-bar-wrap" key={idx}>
 <div className="chart-bar" style={{height: heightPct + '%'}} title={vol + ' kg'}></div>
-<div className="chart-label">{'S' + w.week}</div>
+<div className="chart-label">{new Date(w.completedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}</div>
 </div>
 );
 })}
@@ -2874,7 +2957,7 @@ return (
 {reversedHistory.map(({ entry: w, idx: wIdx }) => (
 <div className="history-week" key={wIdx}>
 <div className="history-week-header">
-<h3>{'Semaine ' + w.week + ' — ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
+<h3>{'Semaine terminée le ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
 <button className="btn-delete-week" onClick={() => deleteWeekEntry(wIdx)} title="Supprimer cet entraînement de l'historique">🗑️ Supprimer</button>
 </div>
 <p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume(w) + ' kg cumulés'}</p>
@@ -2910,7 +2993,8 @@ return (
 <div className="workout-card-exercise-name">{ex.name}</div>
 <div className="hist-actions">
 <button type="button" className="hist-icon-btn" title="Modifier les resultats" onClick={() => openEditLog('archive', wIdx, dayIdx, exIdx, ex.name, log)}>✏️ Modifier</button>
-<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('archive', wIdx, dayIdx, exIdx, ex.name)}>🗑️ Supprimer</button>
+<button type="button" className="hist-icon-btn danger" title="Supprimer cet exercice de l historique" onClick={() => deleteLogEntry('archive', wIdx, dayIdx, exIdx, ex.name)}>🗑️ Effacer les résultats</button>
+<button type="button" className="hist-icon-btn danger" title="Retirer cet exercice de l historique" onClick={() => deleteHistoryExercise(wIdx, dayIdx, exIdx)}>❌ Retirer l'exercice</button>
 </div>
 <div className="workout-card-exercise-detail">
 {'Prévu: ' + ex.sets + ' x ' + ex.reps + (ex.weight ? (' @ ' + ex.weight) : '')}
@@ -2928,9 +3012,6 @@ return (
 {maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
 </div>
 </div>
-{hasLog && (
-<button className="btn-delete-exercise" aria-label="Supprimer cet exercice" onClick={(e) => { e.stopPropagation(); deleteExerciseLog(wIdx, dayIdx, exIdx); }} title="Supprimer cet exercice complété">🗑️</button>
-)}
 </div>
 );
 })}
