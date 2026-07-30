@@ -36,8 +36,8 @@ content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
 background: linear-gradient(90deg, transparent, var(--orange), var(--orange-light), var(--orange), transparent);
 }
 .header h1 {
-font-family: 'Rajdhani', sans-serif; font-size: 32px; letter-spacing: 1px; font-weight: 700;
-margin-bottom: 4px; color: var(--text); text-shadow: 0 0 18px rgba(255,122,26,0.45);
+font-family: 'Rajdhani', sans-serif; font-size: 32px; letter-spacing: 2px; font-weight: 700;
+margin-bottom: 4px; color: var(--orange); text-shadow: 0 0 18px rgba(255,122,26,0.45);
 }
 .header p { color: var(--text-dim); font-size: 13px; letter-spacing: 0.5px; }
 .content { padding: 20px; }
@@ -220,6 +220,35 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 .exercise-log.drag-over { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(255,122,26,0.25); }
 .exercise-log.drag-settled { animation: dragSettle 0.25s ease; }
 @keyframes dragSettle { 0% { transform: scale(1.03); } 100% { transform: scale(1); } }
+.logo-badge { display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+@keyframes fadeInUp { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+.tab-panel { animation: fadeInUp 0.3s ease; }
+@keyframes modalFadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes modalScaleIn { 0% { opacity: 0; transform: scale(0.96) translateY(8px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-overlay { animation: modalFadeIn 0.18s ease; }
+.modal-box { animation: modalScaleIn 0.22s ease; }
+@keyframes checkPop { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+.series-feedback { animation: checkPop 0.3s ease; }
+@keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+.rest-timer-count { animation: timerPulse 1s ease-in-out infinite; }
+.chat-messages { scroll-behavior: smooth; }
+button, .tab-btn { min-height: 44px; }
+button:focus-visible, .tab-btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .calendar-day:focus-visible, .equipment-chip:focus-visible, .workout-card:focus-visible {
+outline: 2px solid var(--orange-light); outline-offset: 2px;
+}
+.calendar-day { min-height: 44px; }
+@media (max-width: 480px) {
+body { padding: 6px; }
+.modal-overlay { padding: 5vw; }
+.modal-box { width: 90vw; max-width: 90vw; padding: 16px; }
+.calendar-grid { gap: 3px; }
+.calendar-day { padding: 1px; }
+.calendar-day-number { font-size: 13px; }
+input, select, textarea { padding: 12px; font-size: 16px; }
+.session-timer-display { font-size: 26px; }
+.tab-btn { font-size: 11px; padding: 10px 2px; }
+.header h1 { font-size: 28px; }
+}
 </style>
 </head>
 <body>
@@ -1301,7 +1330,16 @@ const reversedHistory = weekHistory.map((w, i) => ({ entry: w, idx: i })).slice(
 return (
 <div className="app">
 <div className="header">
-<h1>💪 FitCoach</h1>
+<div className="logo-badge" aria-hidden="true">
+<svg width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="50" cy="46" r="40" stroke="#ff7a1a" strokeWidth="5"/>
+<rect x="40" y="20" width="9" height="34" rx="3" fill="#ff7a1a"/>
+<rect x="51" y="20" width="9" height="34" rx="3" fill="#ff7a1a"/>
+<rect x="36" y="33" width="28" height="9" rx="3" fill="#ff7a1a"/>
+<circle cx="50" cy="66" r="3.5" fill="#ff7a1a"/>
+</svg>
+</div>
+<h1>FITPRO</h1>
 <p>Votre coach d'entraînement IA</p>
 </div>
 <div className="content">
@@ -1318,7 +1356,7 @@ return (
 )}
 
 {currentTab === 'setup' && (
-<div>
+<div className="tab-panel">
 {weekHistory.length > 0 && (
 <div className="dashboard-block">
 <h2 className="section-title">📊 Ton résumé</h2>
@@ -1406,7 +1444,7 @@ return (
 )}
 
 {currentTab === 'plan' && currentWeekPlan && (
-<div>
+<div className="tab-panel">
 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
 <h2 style={{color: 'var(--text)'}}>Semaine {currentWeekPlan.week}</h2>
 <button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 16px'}}>🔀 Réinitialiser l'ordre</button>
@@ -1465,7 +1503,7 @@ return (
 )}
 
 {currentTab === 'chat' && (
-<div>
+<div className="tab-panel">
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>Coach IA</h2>
 <p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>
 Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach peut aussi proposer d'ajuster ton plan, mais il te demandera toujours ta confirmation avant de l'appliquer.
@@ -1494,15 +1532,15 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 <div ref={chatEndRef} />
 </div>
 <div className="chat-input-area">
-<input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} placeholder="Votre question..." disabled={loading} />
-<button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>↩️</button>
+<input type="text" aria-label="Votre question pour le coach" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} placeholder="Votre question..." disabled={loading} />
+<button aria-label="Envoyer" onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>↩️</button>
 </div>
 </div>
 </div>
 )}
 
 {currentTab === 'history' && (
-<div>
+<div className="tab-panel">
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique &amp; Progression</h2>
 {(() => {
   const calendarEntries = buildCalendarEntries();
@@ -1548,6 +1586,8 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
               key={idx}
               className={'calendar-day' + (cell.current ? '' : ' calendar-day-muted') + (hasWorkout ? ' calendar-day-workout' : '') + (isSelected ? ' calendar-day-selected' : '')}
               onClick={() => setSelectedCalendarDate(dateStr === selectedCalendarDate ? null : dateStr)}
+            
+              role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCalendarDate(dateStr === selectedCalendarDate ? null : dateStr); } }}
             >
               <span className="calendar-day-number">{cell.day}</span>
               {hasWorkout && (<span className="calendar-day-icons">{icons.join('')}</span>)}
@@ -1587,7 +1627,7 @@ if (stats.loggedCount === 0) return null;
 const cardKey = 'current-' + dayIdx;
 const isOpen = !!expandedWorkouts[cardKey];
 return (
-<div className="workout-card" key={dayIdx} onClick={() => toggleWorkout(cardKey)}>
+<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={() => toggleWorkout(cardKey)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
 <div className="workout-card-header">
 <div className="workout-card-header-left">
 <span className="workout-card-icon">{typeIcon(day.type)}</span>
@@ -1694,14 +1734,14 @@ const cardKey = w.week + '-' + dayIdx + '-' + wIdx;
 const stats = computeDayStats(w, dayIdx, day);
 const isOpen = !!expandedWorkouts[cardKey];
 return (
-<div className="workout-card" key={dayIdx} onClick={() => toggleWorkout(cardKey)}>
+<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={() => toggleWorkout(cardKey)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
 <div className="workout-card-header">
 <div className="workout-card-header-left">
 <span className="workout-card-icon">{typeIcon(day.type)}</span>
 <span><strong>{day.day}</strong> <span className="workout-card-daytype">— {day.type}</span></span>
 </div>
 <div className="workout-card-header-right">
-<button className="btn-delete-day" onClick={(e) => { e.stopPropagation(); deleteDayFromWeek(wIdx, dayIdx); }} title="Supprimer cette séance">🗑️</button>
+<button className="btn-delete-day" aria-label="Supprimer cette séance" onClick={(e) => { e.stopPropagation(); deleteDayFromWeek(wIdx, dayIdx); }} title="Supprimer cette séance">🗑️</button>
 <span className="chevron">{isOpen ? '▾' : '▸'}</span>
 </div>
 </div>
@@ -1734,7 +1774,7 @@ return (
 </div>
 </div>
 {hasLog && (
-<button className="btn-delete-exercise" onClick={(e) => { e.stopPropagation(); deleteExerciseLog(wIdx, dayIdx, exIdx); }} title="Supprimer cet exercice complété">🗑️</button>
+<button className="btn-delete-exercise" aria-label="Supprimer cet exercice" onClick={(e) => { e.stopPropagation(); deleteExerciseLog(wIdx, dayIdx, exIdx); }} title="Supprimer cet exercice complété">🗑️</button>
 )}
 </div>
 );
@@ -1762,7 +1802,7 @@ return (
 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
 <div className="modal-header">
 <h3>{exerciseModal.name}</h3>
-<button className="modal-close" onClick={() => setExerciseModal(null)}>✕</button>
+<button className="modal-close" aria-label="Fermer" onClick={() => setExerciseModal(null)}>✕</button>
 </div>
 <div className="modal-media">
 {imgSrc ? (
@@ -1804,7 +1844,7 @@ return (
 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
 <div className="modal-header">
 <h3>{logModal.name}</h3>
-<button className="modal-close" onClick={closeLogModal}>✕</button>
+<button className="modal-close" aria-label="Fermer" onClick={closeLogModal}>✕</button>
 </div>
 <div className="modal-media">
 {imgSrc ? (
@@ -1827,8 +1867,8 @@ return (
 <div className="set-input-row">
 <label>{'Série ' + (sets.length + 1)}</label>
 <div className="set-input-fields">
-<input type="number" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
-<input type="number" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
+<input type="number" aria-label="Poids en kilogrammes" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
+<input type="number" aria-label="Nombre de répétitions" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
 {seriesFeedback && <p className="series-feedback">Série enregistrée ✓</p>}
@@ -1836,7 +1876,7 @@ return (
 <div style={{textAlign: 'center', marginTop: '12px'}}>
 {restTimer.running ? (
 <React.Fragment>
-<div className="session-timer-display" style={{color: 'var(--red)'}}>{'⏳ Pause: ' + formatMMSS(restTimer.secondsLeft)}</div>
+<div className="session-timer-display rest-timer-count" style={{color: 'var(--red)'}}>{'⏳ Pause: ' + formatMMSS(restTimer.secondsLeft)}</div>
 <button type="button" className="btn-secondary" style={{marginTop: '8px', width: 'auto', padding: '6px 14px', fontSize: '12px'}} onClick={() => setRestTimer(null)}>Passer la pause</button>
 </React.Fragment>
 ) : (
@@ -1862,16 +1902,16 @@ return (
 {showCardioFields && (
 <React.Fragment>
 <p className="section-title" style={{fontSize: '13px', marginTop: '4px'}}>Détails de la séance</p>
-<input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value, allure: computeAllureStr(e.target.value, logged.time)})} />
-<input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value, allure: computeAllureStr(logged.distance, e.target.value)})} />
+<input type="number" aria-label="Distance en kilomètres" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value, allure: computeAllureStr(e.target.value, logged.time)})} />
+<input type="text" aria-label="Temps de la séance" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value, allure: computeAllureStr(logged.distance, e.target.value)})} />
 {logged.allure && (<p style={{fontSize: '12px', color: 'var(--orange-light)', margin: '-6px 0 10px'}}>{'🏃 Allure: ' + logged.allure + ' par km'}</p>)}
 </React.Fragment>
 )}
 {showHeartRateField && (
-<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
+<input type="number" aria-label="Fréquence cardiaque moyenne" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
 )}
 <p className="section-title" style={{fontSize: '13px', marginTop: (showCardioFields || showHeartRateField) ? '10px' : '14px'}}>Notes</p>
-<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
+<textarea aria-label="Notes sur la séance" placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
 </div>
 <button type="button" className="btn-secondary" style={{marginTop: '12px'}} onClick={closeLogModal}>🏁 TERMINER CET EXERCICE</button>
 </div>
