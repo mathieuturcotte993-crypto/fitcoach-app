@@ -340,6 +340,11 @@ body { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
 }
 .chrono-pill { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 12px; z-index: 70; background: linear-gradient(135deg, var(--orange), var(--orange-light)); color: #17120a; font-weight: 800; font-size: 14px; padding: 8px 14px; border-radius: 999px; box-shadow: 0 6px 20px rgba(255,122,26,0.45); cursor: pointer; letter-spacing: 0.5px; animation: toastIn 0.3s ease; }
 .chrono-pill:active { transform: scale(0.96); }
+::-webkit-scrollbar:horizontal { height: 6px; }
+.day-tabs, .chat-messages, .prep-chips { scrollbar-width: none; }
+.day-tabs::-webkit-scrollbar { display: none; height: 0; }
+.day-tabs { scroll-snap-type: x proximity; }
+.day-tab { scroll-snap-align: center; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
 </style>
 </head>
