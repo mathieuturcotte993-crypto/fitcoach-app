@@ -765,15 +765,25 @@ return off;
 
 const anchorElement = (el) => {
 if (!el || typeof el.getBoundingClientRect !== 'function') return;
-const run = () => {
+let cancelled = false;
+const stop = () => { cancelled = true; };
 try {
-const rect = el.getBoundingClientRect();
-const target = Math.max(0, window.scrollY + rect.top - stickyTopOffset());
+window.addEventListener('wheel', stop, { passive: true });
+window.addEventListener('touchstart', stop, { passive: true });
+setTimeout(() => { try { window.removeEventListener('wheel', stop); window.removeEventListener('touchstart', stop); } catch (e) {} }, 700);
+} catch (e) {}
+const run = () => {
+if (cancelled) return;
+try {
+if (!el.isConnected) return;
+const target = Math.max(0, el.getBoundingClientRect().top + window.scrollY - stickyTopOffset());
 if (Math.abs(target - window.scrollY) < 4) return;
-window.scrollTo({ top: target, behavior: 'smooth' });
+try { window.scrollTo({ top: target, behavior: 'smooth' }); } catch (e2) { window.scrollTo(0, target); }
 } catch (e) { }
 };
-try { requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(run, 30))); } catch (e) { setTimeout(run, 60); }
+try { requestAnimationFrame(() => setTimeout(run, 20)); } catch (e) { setTimeout(run, 40); }
+setTimeout(run, 220);
+setTimeout(run, 520);
 };
 
 useEffect(() => {
