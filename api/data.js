@@ -24,7 +24,7 @@ try { body = JSON.parse(body); } catch (e) { body = {}; }
 }
 body = body || {};
 
-const action = body.action === 'set' ? 'set' : 'get';
+const action = body.action === 'set' ? 'set' : (body.action === 'delete' ? 'delete' : 'get');
 const code = String(body.code || '').trim();
 if (!/^[A-Za-z0-9_-]{8,64}$/.test(code)) {
 return res.status(400).json({ error: 'invalid_code' });
@@ -45,6 +45,17 @@ if (j && typeof j.result === 'string' && j.result.length > 0) {
 try { data = JSON.parse(j.result); } catch (e) { data = null; }
 }
 return res.status(200).json({ ok: true, data: data });
+}
+
+if (action === 'delete') {
+const d = await fetch(baseUrl + '/del/' + encodeURIComponent(key), {
+method: 'POST',
+headers: { Authorization: 'Bearer ' + token }
+});
+if (!d.ok) {
+return res.status(502).json({ error: 'storage_error' });
+}
+return res.status(200).json({ ok: true, deleted: true });
 }
 
 const payload = body.data;
