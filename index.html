@@ -190,7 +190,6 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 .modal-media { width: 100%; height: 220px; border-radius: 10px; overflow: hidden; background: var(--surface-2); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; border: 1px solid var(--border); }
 .modal-media img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .modal-media-fallback { color: var(--text-dim); text-align: center; font-size: 14px; }
-.modal-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
 .btn-video { display: block; text-align: center; background: linear-gradient(135deg, var(--orange) 0%, var(--orange-light) 100%); color: #17120a; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-0); }
@@ -206,7 +205,6 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
-
 const EQUIPMENT_CATALOG = [
 { id: 'poids_corps', label: 'Poids du corps', icon: '🤸' },
 { id: 'halteres', label: 'Haltères', icon: '🏋️' },
@@ -228,16 +226,13 @@ const EQUIPMENT_CATALOG = [
 { id: 'piscine', label: 'Piscine', icon: '🏊' },
 { id: 'sac_frappe', label: 'Sac de frappe', icon: '🥊' }
 ];
-
 const EQUIPMENT_PRESETS = [
 { id: 'crossfit', label: '🔥 Salle de Crossfit (Box)', items: ['poids_corps','kettlebell','barre_olympique','anneaux_trx','barre_traction','corde_sesaut','battle_rope','box_plyo','rameur','assault_bike'] },
 { id: 'muscu_standard', label: '🏋️ Musculation standard (type Éconofitness)', items: ['halteres','barre_olympique','rack_squat','banc','machines_guidees','poulie_cable','tapis_course','assault_bike'] },
 { id: 'maison', label: '🏠 Maison (équipement léger)', items: ['halteres','bandes_resistance','banc','poids_corps'] },
 { id: 'poids_corps_only', label: '🤸 Poids du corps uniquement', items: ['poids_corps'] }
 ];
-
 const EXERCISE_IMAGE_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
-
 const EXERCISE_LIBRARY = [
 { keys: ['developpe couche','bench press','couche barre','developpe plat'], id: 'Barbell_Bench_Press_-_Medium_Grip', desc: "Allongé sur le banc, saisis la barre en prise pronation un peu plus large que les épaules. Descends-la de façon contrôlée jusqu'à effleurer la poitrine, puis pousse vers le haut en expirant, omoplates serrées et pieds ancrés au sol." },
 { keys: ['developpe incline'], id: 'Barbell_Incline_Bench_Press_-_Medium_Grip', desc: "Sur un banc incliné, pousse la barre depuis la poitrine haute jusqu'à extension complète des bras, en gardant les coudes légèrement rentrés pour cibler le haut des pectoraux." },
@@ -277,14 +272,11 @@ const EXERCISE_LIBRARY = [
 { keys: ['wall ball'], id: null, desc: "Tiens un ballon lesté contre la poitrine, descends en squat complet puis, en remontant, projette le ballon vers une cible en hauteur sur le mur avant de le rattraper." },
 { keys: ['corde ondulatoire','battle rope'], id: null, desc: "Tiens une extrémité de corde dans chaque main, genoux fléchis, et crée des vagues alternées ou simultanées en gardant le tronc gainé tout au long de l'effort." }
 ];
-
 const normalizeText = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
 const getExerciseInfo = (name) => {
 const n = normalizeText(name);
 return EXERCISE_LIBRARY.find(e => e.keys.some(k => n.includes(k))) || null;
 };
-
 function FitCoachApp() {
 const [currentTab, setCurrentTab] = useState('setup');
 const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
@@ -307,6 +299,14 @@ const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('logs') |
 const [weekHistory, setWeekHistory] = useState(() => JSON.parse(localStorage.getItem('weekHistory') || '[]'));
 const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages') || '[]'));
 const [pendingPlanUpdate, setPendingPlanUpdate] = useState(() => JSON.parse(localStorage.getItem('pendingPlanUpdate') || 'null'));
+const [userWeight, setUserWeight] = useState(() => localStorage.getItem('userWeight') || '');
+const [userAge, setUserAge] = useState(() => localStorage.getItem('userAge') || '');
+const [userHeight, setUserHeight] = useState(() => localStorage.getItem('userHeight') || '');
+const [exerciseProgression, setExerciseProgression] = useState(() => JSON.parse(localStorage.getItem('exerciseProgression') || '[]'));
+const [sessionCalories, setSessionCalories] = useState(() => JSON.parse(localStorage.getItem('sessionCalories') || '{}'));
+const [sessionSummary, setSessionSummary] = useState(null);
+const [caloriesPeriod, setCaloriesPeriod] = useState('all');
+const [calculatingCalories, setCalculatingCalories] = useState(false);
 const [expandedWorkouts, setExpandedWorkouts] = useState({});
 const [chatInput, setChatInput] = useState('');
 const [loading, setLoading] = useState(false);
@@ -327,11 +327,9 @@ const [dragInfo, setDragInfo] = useState(null);
 const [dragOverInfo, setDragOverInfo] = useState(null);
 const [settledInfo, setSettledInfo] = useState(null);
 const chatEndRef = useRef(null);
-
 useEffect(() => {
 chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
 }, [chatMessages, pendingPlanUpdate]);
-
 useEffect(() => { localStorage.setItem('apiKey', apiKey); }, [apiKey]);
 useEffect(() => { localStorage.setItem('userLevel', userLevel); }, [userLevel]);
 useEffect(() => { localStorage.setItem('userEquipmentList', JSON.stringify(userEquipmentList)); }, [userEquipmentList]);
@@ -348,27 +346,28 @@ useEffect(() => {
 if (pendingPlanUpdate) { localStorage.setItem('pendingPlanUpdate', JSON.stringify(pendingPlanUpdate)); }
 else { localStorage.removeItem('pendingPlanUpdate'); }
 }, [pendingPlanUpdate]);
-
+useEffect(() => { localStorage.setItem('userWeight', userWeight); }, [userWeight]);
+useEffect(() => { localStorage.setItem('userAge', userAge); }, [userAge]);
+useEffect(() => { localStorage.setItem('userHeight', userHeight); }, [userHeight]);
+useEffect(() => { localStorage.setItem('exerciseProgression', JSON.stringify(exerciseProgression)); }, [exerciseProgression]);
+useEffect(() => { localStorage.setItem('sessionCalories', JSON.stringify(sessionCalories)); }, [sessionCalories]);
 useEffect(() => {
 if (!exerciseModal) return;
 setModalFrame(0);
 const interval = setInterval(() => setModalFrame(f => (f === 0 ? 1 : 0)), 900);
 return () => clearInterval(interval);
 }, [exerciseModal]);
-
 useEffect(() => {
 if (!isTimerRunning) return;
 const interval = setInterval(() => setSessionTimer(t => t + 1), 1000);
 return () => clearInterval(interval);
 }, [isTimerRunning]);
-
 useEffect(() => {
 if (!logModal) return;
 setLogModalFrame(0);
 const interval = setInterval(() => setLogModalFrame(f => (f === 0 ? 1 : 0)), 900);
 return () => clearInterval(interval);
 }, [logModal]);
-
 useEffect(() => {
 if (!restTimer || !restTimer.running) return;
 const interval = setInterval(() => {
@@ -382,29 +381,29 @@ return { ...prev, secondsLeft: prev.secondsLeft - 1 };
 }, 1000);
 return () => clearInterval(interval);
 }, [restTimer && restTimer.running]);
-
 useEffect(() => {
 if (restTimer && restTimer.justFinished) {
 const t = setTimeout(() => setRestTimer(null), 1500);
 return () => clearTimeout(t);
 }
 }, [restTimer && restTimer.justFinished]);
-
 useEffect(() => {
 if (!exerciseSummary) return;
 const t2 = setTimeout(() => setExerciseSummary(null), 3500);
 return () => clearTimeout(t2);
 }, [exerciseSummary]);
-
+useEffect(() => {
+if (!sessionSummary) return;
+const t3 = setTimeout(() => setSessionSummary(null), 6000);
+return () => clearTimeout(t3);
+}, [sessionSummary]);
 const toggleEquipmentItem = (id) => {
 setUserEquipmentList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 };
-
 const equipmentDescriptionText = () => {
 if (!userEquipmentList.length) return "Aucun équipement précisé (prévois des exercices au poids du corps)";
 return userEquipmentList.map(id => (EQUIPMENT_CATALOG.find(e => e.id === id) || {}).label).filter(Boolean).join(', ');
 };
-
 const callClaudeAPI = async (messages, system) => {
 if (!apiKey) {
 setMessage("Erreur: Veuillez configurer votre clé API Claude d'abord");
@@ -427,7 +426,6 @@ setMessage('Erreur: ' + error.message);
 return null;
 }
 };
-
 const typeIcon = (type) => {
 const t = (type || '').toLowerCase();
 if (t.includes('muscu')) return '🏋️';
@@ -438,7 +436,6 @@ if (t.includes('crossfit') || t.includes('wod')) return '🔥';
 if (t.includes('rando') || t.includes('hike') || t.includes('marche')) return '🥾';
 return '💪';
 };
-
 const parseTimeToMinutes = (str) => {
 if (!str) return 0;
 const parts = String(str).split(':').map(p => parseFloat(p)).filter(n => !isNaN(n));
@@ -451,7 +448,6 @@ if (parts.length === 2) return parts[0] + parts[1] / 60;
 if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
 return 0;
 };
-
 const computeDayStats = (weekEntry, dayIdx, day) => {
 let volume = 0, distance = 0, timeMin = 0, loggedCount = 0;
 (day.exercises || []).forEach((ex, exIdx) => {
@@ -474,7 +470,6 @@ timeMin: Math.round(timeMin),
 loggedCount
 };
 };
-
 const computeWeekTotalVolume = (weekEntry) => {
 let total = 0;
 (weekEntry.plan.days || []).forEach((day, dayIdx) => {
@@ -482,7 +477,67 @@ total += computeDayStats(weekEntry, dayIdx, day).volume;
 });
 return total;
 };
-
+const getDayLoggedExercises = (day, dayIdx, logsObj) => {
+return (day.exercises || []).map((ex, exIdx) => ({ ex, exIdx, log: logsObj[dayIdx + '-' + exIdx] })).filter(x => x.log && (((x.log.series || []).length > 0) || x.log.distance || x.log.time));
+};
+const computeDayDurationSeconds = (day, dayIdx, logsObj) => {
+let total = 0;
+(day.exercises || []).forEach((ex, exIdx) => {
+const log = logsObj[dayIdx + '-' + exIdx];
+if (log && log.exerciseStartTime && log.exerciseEndTime) {
+total += Math.max(0, (new Date(log.exerciseEndTime) - new Date(log.exerciseStartTime)) / 1000);
+}
+});
+return total;
+};
+const proposeNextWeight = (maxWeight) => {
+const raw = maxWeight * 1.05;
+return Math.round(raw / 2.5) * 2.5;
+};
+const getPeriodCutoffDate = (period) => {
+const now = new Date();
+if (period === 'week') return new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+if (period === 'month') return new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+if (period === 'year') return new Date(now.getTime() - 365 * 24 * 3600 * 1000);
+return null;
+};
+const computeTotalCalories = (period) => {
+const cutoff = getPeriodCutoffDate(period);
+let total = 0;
+weekHistory.forEach(w => {
+if (cutoff && new Date(w.completedAt) < cutoff) return;
+Object.values(w.dayCalories || {}).forEach(c => { total += (parseInt(c, 10) || 0); });
+});
+return total;
+};
+const estimateCaloriesForDay = async (dayIdx, day, logsObj) => {
+const loggedItems = getDayLoggedExercises(day, dayIdx, logsObj);
+if (!loggedItems.length) return null;
+const durationSec = computeDayDurationSeconds(day, dayIdx, logsObj) || sessionTimer;
+const durationMin = Math.max(1, Math.round(durationSec / 60));
+const details = loggedItems.map(({ ex, log }) => {
+const parts = [ex.name + ':'];
+if (log.series && log.series.length) parts.push(log.series.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
+if (log.distance) parts.push(log.distance + 'km');
+if (log.time) parts.push(log.time);
+if (log.heartRate) parts.push('FC moy: ' + log.heartRate + ' bpm');
+return parts.join(' ');
+}).join(' | ');
+const heartRates = loggedItems.map(({ log }) => parseFloat(log.heartRate)).filter(n => !isNaN(n));
+const avgHR = heartRates.length ? Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length) : null;
+const userInfo = 'Poids: ' + (userWeight || 'inconnu') + 'kg, Âge: ' + (userAge || 'inconnu') + ', Taille: ' + (userHeight || 'inconnu') + 'cm';
+const prompt = "Estime le nombre de calories brûlées pour cette séance d'entraînement.\n" +
+'Type: ' + day.type + '\n' +
+'Durée: ' + durationMin + ' minutes\n' +
+'Détails des exercices: ' + details + '\n' +
+(avgHR ? ('FC moyenne: ' + avgHR + ' bpm\n') : '') +
+'Utilisateur: ' + userInfo + '\n\n' +
+'Réponds UNIQUEMENT avec un nombre entier (les calories estimées), sans texte ni unité.';
+const result = await callClaudeAPI([{ role: 'user', content: prompt }], "Tu es un expert en physiologie de l'exercice qui estime des dépenses caloriques de façon réaliste et prudente. Réponds uniquement par un nombre entier, sans aucun texte additionnel.");
+if (!result) return null;
+const match = result.match(/\d+/);
+return match ? parseInt(match[0], 10) : null;
+};
 const computeGlobalStatsByType = () => {
 const stats = {};
 weekHistory.forEach((weekEntry) => {
@@ -498,7 +553,6 @@ stats[key].timeMin += dayStats.timeMin;
 });
 return stats;
 };
-
 const primaryMetricText = (type, s) => {
 const t = (type || '').toLowerCase();
 if (t.includes('muscu')) return s.volume + ' kg';
@@ -509,7 +563,6 @@ if (t.includes('cardio')) return s.timeMin > 0 ? (s.timeMin + ' min') : (s.sessi
 if (t.includes('crossfit') || t.includes('wod')) return s.sessions + (s.sessions > 1 ? ' WODs' : ' WOD');
 return s.sessions + (s.sessions > 1 ? ' séances' : ' séance');
 };
-
 const summaryLine = (day, stats) => {
 const t = (day.type || '').toLowerCase();
 if (t.includes('muscu') && stats.volume > 0) return stats.volume + ' kg soulevés au total';
@@ -518,7 +571,6 @@ if (t.includes('cardio') && stats.timeMin > 0) return stats.timeMin + ' min au t
 if (stats.loggedCount > 0) return stats.loggedCount + ' exercice(s) enregistré(s)';
 return (day.exercises || []).length + ' exercice(s) au programme';
 };
-
 const totalLine = (day, stats) => {
 const t = (day.type || '').toLowerCase();
 if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' kg soulevés';
@@ -526,11 +578,9 @@ if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includ
 if (t.includes('cardio')) return '❤️ Total: ' + (stats.timeMin > 0 ? stats.timeMin + ' min' : 'N/A');
 return typeIcon(day.type) + ' Séance complétée';
 };
-
 const toggleWorkout = (key) => {
 setExpandedWorkouts(prev => ({ ...prev, [key]: !prev[key] }));
 };
-
 const formatTimer = (totalSeconds) => {
 const h = Math.floor(totalSeconds / 3600);
 const m = Math.floor((totalSeconds % 3600) / 60);
@@ -538,27 +588,22 @@ const s = totalSeconds % 60;
 const pad = (n) => String(n).padStart(2, '0');
 return pad(h) + ':' + pad(m) + ':' + pad(s);
 };
-
 const formatMMSS = (totalSeconds) => {
 const s2 = Math.max(0, Math.round(totalSeconds || 0));
 const m2 = Math.floor(s2 / 60);
 const sec2 = s2 % 60;
 return String(m2).padStart(2, '0') + ':' + String(sec2).padStart(2, '0');
 };
-
 const startRestTimer = (seconds) => {
 setRestTimer({ secondsLeft: seconds, total: seconds, running: true, justFinished: false });
 };
-
 const handleDragStart = (dayIdx, pos) => {
 setDragInfo({ dayIdx, pos });
 };
-
 const handleDragOverItem = (dayIdx, pos) => {
 if (!dragInfo || dragInfo.dayIdx !== dayIdx) return;
 setDragOverInfo({ dayIdx, pos });
 };
-
 const handleDropItem = (dayIdx, pos) => {
 if (!dragInfo || dragInfo.dayIdx !== dayIdx || dragInfo.pos === pos) {
 setDragInfo(null);
@@ -576,25 +621,37 @@ setTimeout(() => setSettledInfo(null), 300);
 setDragInfo(null);
 setDragOverInfo(null);
 };
-
 const handleDragEndItem = () => {
 setDragInfo(null);
 setDragOverInfo(null);
 };
-
 const resetExerciseOrder = () => {
 setExerciseOrder({});
 };
-
 const handleStartWorkout = () => {
 setSessionTimer(0);
 setIsTimerRunning(true);
 };
-
-const handleFinishWorkout = () => {
+const handleFinishWorkout = async () => {
 setIsTimerRunning(false);
+if (!currentWeekPlan) return;
+setCalculatingCalories(true);
+const results = {};
+for (let dayIdx = 0; dayIdx < currentWeekPlan.days.length; dayIdx++) {
+const day = currentWeekPlan.days[dayIdx];
+const loggedItems = getDayLoggedExercises(day, dayIdx, logs);
+if (!loggedItems.length) continue;
+const cal = await estimateCaloriesForDay(dayIdx, day, logs);
+if (cal != null) results[dayIdx] = cal;
+}
+if (Object.keys(results).length) {
+setSessionCalories(prev => ({ ...prev, ...results }));
+const summaryDays = currentWeekPlan.days.map((d, i) => ({ name: d.day + ' - ' + d.type, calories: results[i] != null ? results[i] : (sessionCalories[i] != null ? sessionCalories[i] : null) })).filter(x => x.calories != null);
+if (summaryDays.length) setSessionSummary({ days: summaryDays });
+setMessage('✅ Calories estimées pour cette séance');
+}
+setCalculatingCalories(false);
 };
-
 const openLogModal = (dayIdx, exIdx, name, type) => {
 setRestTimer(null);
 setCurrentSetWeight('');
@@ -607,7 +664,6 @@ return { ...prev, [key]: { ...existing, exerciseStartTime: new Date().toISOStrin
 });
 setLogModal({ dayIdx, exIdx, name, type });
 };
-
 const closeLogModal = () => {
 if (logModal) {
 const key = logModal.dayIdx + '-' + logModal.exIdx;
@@ -625,7 +681,6 @@ return { ...prev, [key]: { ...existing, exerciseEndTime: endTime } };
 setRestTimer(null);
 setLogModal(null);
 };
-
 const saveSet = () => {
 if (!logModal) return;
 const key = logModal.dayIdx + '-' + logModal.exIdx;
@@ -640,7 +695,6 @@ setCurrentSetReps('');
 setSeriesFeedback(true);
 setTimeout(() => setSeriesFeedback(false), 1500);
 };
-
 const generateWeekPlan = async () => {
 if (!apiKey) {
 setMessage('Erreur: Clé API manquante');
@@ -650,10 +704,8 @@ if (!userEquipmentList.length) {
 setMessage("Erreur: Sélectionne au moins un équipement disponible dans la configuration");
 return;
 }
-
 setLoading(true);
 setMessage("Génération de votre plan d'entraînement...");
-
 const lastWeek = weekHistory[weekHistory.length - 1];
 let progressionNote = '';
 if (lastWeek) {
@@ -675,7 +727,23 @@ if (parts.length) {
 progressionNote = '\nDonnées réelles enregistrées la semaine ' + lastWeek.week + ' (utilise-les pour ajuster intelligemment la progression, augmente légèrement la charge ou le volume si les performances étaient bonnes, sinon stabilise): ' + parts.join('; ');
 }
 }
-
+const lastWeekMaxWeights = {};
+if (lastWeek) {
+Object.entries(lastWeek.logs || {}).forEach(([key, val]) => {
+const idxParts2 = key.split('-').map(Number);
+const dayIdx2 = idxParts2[0];
+const exIdx2 = idxParts2[1];
+const day2 = lastWeek.plan.days[dayIdx2];
+const ex2 = day2 && day2.exercises[exIdx2];
+if (!ex2 || !val.series || !val.series.length) return;
+let maxW2 = 0;
+val.series.forEach(s => { const w2 = parseFloat(s.weight) || 0; if (w2 > maxW2) maxW2 = w2; });
+if (maxW2 > 0) { if (!lastWeekMaxWeights[ex2.name] || maxW2 > lastWeekMaxWeights[ex2.name]) lastWeekMaxWeights[ex2.name] = maxW2; }
+});
+}
+if (Object.keys(lastWeekMaxWeights).length) {
+progressionNote += '\nPoids maximums soulevés la semaine précédente (par exercice): ' + Object.entries(lastWeekMaxWeights).map(([n, w]) => n + ': ' + w + 'kg').join(', ') + ". Pour chaque exercice de musculation similaire cette semaine, propose un poids conseillé ajusté dans le champ \"weight\": augmente le poids de 5 à 10% si la progression semblait bonne (séries complétées sans difficulté signalée), ou réduis-le d'environ 5% si les notes ou les répétitions indiquent que l'exercice était difficile.";
+}
 const prompt = "Crée un plan d'entraînement complet pour une semaine (5 séances) pour quelqu'un:\n" +
 '- Niveau: ' + userLevel + '\n' +
 '- Objectifs: ' + userGoals + '\n' +
@@ -693,9 +761,7 @@ const prompt = "Crée un plan d'entraînement complet pour une semaine (5 séanc
 ']\n' +
 '}\n\n' +
 "Adapte STRICTEMENT les exercices à l'équipement disponible listé ci-dessus (n'utilise jamais un équipement qui n'est pas dans la liste). Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.";
-
 const result = await callClaudeAPI([{ role: 'user', content: prompt }]);
-
 if (result) {
 try {
 const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -713,32 +779,23 @@ setMessage('Erreur: Impossible de parser le plan. Réessayez.');
 }
 setLoading(false);
 };
-
 const logExercise = (dayIndex, exerciseIndex, data) => {
 const key = dayIndex + '-' + exerciseIndex;
 setLogs(prev => ({ ...prev, [key]: { ...prev[key], ...data } }));
 };
-
 const sendChatMessage = async () => {
 if (!chatInput.trim()) return;
-
 const userMsg = chatInput;
 setChatInput('');
 const updatedMessages = [...chatMessages, { role: 'user', content: userMsg }];
 setChatMessages(updatedMessages);
-
 setLoading(true);
-
 let system = "Tu es un coach sportif IA personnalisé et bienveillant pour l'app FitCoach. Contexte de l'utilisateur: niveau " + userLevel + ', objectifs: "' + (userGoals || 'non précisés') + '", équipement disponible: ' + equipmentDescriptionText() + ", semaine d'entraînement actuelle: " + weekNumber + '. Utilise ce contexte pour donner des conseils personnalisés, concis et pratiques.';
-
 if (currentWeekPlan) {
 system += "\n\nVoici le plan d'entraînement actuel de la semaine, au format JSON: " + JSON.stringify(currentWeekPlan) + "\n\nSi, au fil de la discussion, tu identifies qu'une modification concrète de ce plan serait pertinente (ajouter/retirer/remplacer un exercice, changer les séries, répétitions, poids, ou le type d'une séance, etc.), tu peux la proposer activement. Dans ce cas: 1) Explique clairement en langage normal quel changement tu proposes et pourquoi. 2) Demande explicitement la confirmation de l'utilisateur avant d'appliquer quoi que ce soit (tu ne dois JAMAIS appliquer un changement toi-même). 3) À la toute fin de ta réponse uniquement si tu proposes réellement un changement concret, ajoute ce bloc exact contenant le plan COMPLET mis à jour (tous les jours et exercices, modifiés ou non), au format JSON valide strictement identique à la structure fournie: [PLAN_UPDATE_JSON]{...plan complet ici...}[/PLAN_UPDATE_JSON]. N'inclus ce bloc que si un changement concret est proposé, jamais pour un simple conseil général. Ne mentionne jamais ce bloc technique à l'utilisateur, contente-toi de poser ta question de confirmation normalement en texte.";
 }
-
 const apiMessages = updatedMessages.slice(-12).map(m => ({ role: m.role, content: m.content }));
-
 const result = await callClaudeAPI(apiMessages, system);
-
 if (result) {
 const updateMatch = result.match(/\[PLAN_UPDATE_JSON\]([\s\S]*?)\[\/PLAN_UPDATE_JSON\]/);
 let cleanText = result;
@@ -764,7 +821,6 @@ return next;
 }
 setLoading(false);
 };
-
 const applyPlanUpdate = () => {
 if (!pendingPlanUpdate) return;
 setCurrentWeekPlan(pendingPlanUpdate.plan);
@@ -775,31 +831,41 @@ setChatMessages(prev => [...prev, { role: 'assistant', content: "✅ C'est fait,
 setPendingPlanUpdate(null);
 setMessage('✅ Plan mis à jour par le coach IA');
 };
-
 const rejectPlanUpdate = () => {
 setPendingPlanUpdate(null);
 setChatMessages(prev => [...prev, { role: 'assistant', content: 'Pas de problème, je ne change rien à ton plan.' }]);
 };
-
 const finishWeek = () => {
 if (currentWeekPlan) {
-setWeekHistory(prev => [...prev, { week: currentWeekPlan.week, plan: currentWeekPlan, logs: logs, completedAt: new Date().toISOString() }]);
+const maxWeightsThisWeek = {};
+(currentWeekPlan.days || []).forEach((day, dayIdx) => {
+(day.exercises || []).forEach((ex, exIdx) => {
+const log = logs[dayIdx + '-' + exIdx];
+if (!log || !log.series) return;
+let maxW = 0;
+log.series.forEach(s => { const w = parseFloat(s.weight) || 0; if (w > maxW) maxW = w; });
+if (maxW > 0) { if (!maxWeightsThisWeek[ex.name] || maxW > maxWeightsThisWeek[ex.name]) maxWeightsThisWeek[ex.name] = maxW; }
+});
+});
+const nowIso = new Date().toISOString();
+const newProgressionEntries = Object.entries(maxWeightsThisWeek).map(([exerciseName, maxWeight]) => ({ exerciseName, maxWeight, week: currentWeekPlan.week, date: nowIso }));
+if (newProgressionEntries.length) setExerciseProgression(prev => [...prev, ...newProgressionEntries]);
+setWeekHistory(prev => [...prev, { week: currentWeekPlan.week, plan: currentWeekPlan, logs: logs, dayCalories: sessionCalories, completedAt: nowIso }]);
 }
 setWeekNumber(prev => prev + 1);
 setCurrentWeekPlan(null);
 setLogs({});
 setExerciseOrder({});
+setSessionCalories({});
 setMessage('');
 setCurrentTab('setup');
 };
-
 const deleteWeekEntry = (idx) => {
 const w = weekHistory[idx];
 if (!w) return;
 if (!window.confirm('Supprimer définitivement cet entraînement (semaine ' + w.week + ') de ton historique ? Cette action est irréversible.')) return;
 setWeekHistory(prev => prev.filter((_, i) => i !== idx));
 };
-
 const deleteDayFromWeek = (weekIdx, dayIdx) => {
 if (!window.confirm('Supprimer cette séance de ton historique ? Cette action est irréversible.')) return;
 setWeekHistory(prev => prev.map((w, i) => {
@@ -816,7 +882,6 @@ newLogs[newD + '-' + e] = val;
 return { ...w, plan: { ...w.plan, days: newDays }, logs: newLogs };
 }));
 };
-
 const deleteExerciseLog = (weekIdx, dayIdx, exIdx) => {
 if (!window.confirm('Supprimer les données de cet exercice complété ? Cette action est irréversible.')) return;
 setWeekHistory(prev => prev.map((w, i) => {
@@ -826,19 +891,16 @@ delete newLogs[dayIdx + '-' + exIdx];
 return { ...w, logs: newLogs };
 }));
 };
-
 const globalStatsByType = computeGlobalStatsByType();
 const totalSessionsCompleted = weekHistory.reduce((sum, w) => sum + ((w.plan.days || []).length), 0);
 const totalVolumeAllTime = weekHistory.reduce((sum, w) => sum + computeWeekTotalVolume(w), 0);
 const reversedHistory = weekHistory.map((w, i) => ({ entry: w, idx: i })).slice().reverse();
-
 return (
 <div className="app">
 <div className="header">
 <h1>💪 FitCoach</h1>
 <p>Votre coach d'entraînement IA</p>
 </div>
-
 <div className="content">
 <div className="tab-buttons">
 <button className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')} onClick={() => setCurrentTab('setup')}>⚙️ Config</button>
@@ -846,13 +908,11 @@ return (
 <button className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')} onClick={() => setCurrentTab('chat')}>💬 Coach IA</button>
 <button className={'tab-btn ' + (currentTab === 'history' ? 'active' : '')} onClick={() => setCurrentTab('history')}>📈 Historique</button>
 </div>
-
 {message && (
 <div className={'message ' + (message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info')}>
 {message}
 </div>
 )}
-
 {currentTab === 'setup' && (
 <div>
 {weekHistory.length > 0 && (
@@ -880,15 +940,12 @@ return (
 </div>
 </div>
 )}
-
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>Configuration Initiale</h2>
-
 <div className="form-group">
 <label>🔑 Clé API Claude</label>
 <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-ant-..." />
 <small style={{color: 'var(--text-dim)', marginTop: '5px', display: 'block'}}>👉 Obtenez votre clé sur console.anthropic.com</small>
 </div>
-
 <div className="form-group">
 <label>📊 Votre Niveau</label>
 <select value={userLevel} onChange={(e) => setUserLevel(e.target.value)}>
@@ -897,7 +954,19 @@ return (
 <option value="advanced">Avancé</option>
 </select>
 </div>
-
+<div className="form-group">
+<label>⚖️ Poids (kg)</label>
+<input type="number" value={userWeight} onChange={(e) => setUserWeight(e.target.value)} placeholder="Ex: 75" />
+<small style={{color: 'var(--text-dim)', marginTop: '5px', display: 'block'}}>Utilisé pour estimer les calories brûlées</small>
+</div>
+<div className="form-group">
+<label>🎂 Âge</label>
+<input type="number" value={userAge} onChange={(e) => setUserAge(e.target.value)} placeholder="Ex: 30" />
+</div>
+<div className="form-group">
+<label>📏 Taille (cm)</label>
+<input type="number" value={userHeight} onChange={(e) => setUserHeight(e.target.value)} placeholder="Ex: 175" />
+</div>
 <div className="form-group">
 <label>🏋️ Équipement Disponible (sélection multiple)</label>
 <div className="preset-row">
@@ -917,18 +986,15 @@ return (
 <small style={{color: 'var(--red)', display: 'block', marginTop: '8px'}}>Sélectionne au moins un équipement disponible.</small>
 )}
 </div>
-
 <div className="form-group">
 <label>🎯 Vos Objectifs</label>
 <textarea value={userGoals} onChange={(e) => setUserGoals(e.target.value)} placeholder="Ex: Me préparer pour mon Hyrox du 19 septembre, prendre du muscle..." />
 </div>
-
 <button onClick={generateWeekPlan} disabled={loading}>
 {loading ? (<><span className="spinner"></span>Génération...</>) : ('🚀 Générer Plan Semaine ' + weekNumber)}
 </button>
 </div>
 )}
-
 {currentTab === 'plan' && currentWeekPlan && (
 <div>
 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
@@ -936,22 +1002,19 @@ return (
 <button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 16px'}}>🔀 Réinitialiser l'ordre</button>
 <button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 16px'}}>✅ Terminer la semaine</button>
 </div>
-
 <div className="session-timer-bar">
 <div className="session-timer-display">⏱️ {formatTimer(sessionTimer)}</div>
 {isTimerRunning ? (
-<button className="btn-secondary" onClick={handleFinishWorkout} style={{width: 'auto', padding: '8px 16px'}}>🏁 TERMINER L'ENTRAÎNEMENT</button>
+<button className="btn-secondary" onClick={handleFinishWorkout} disabled={calculatingCalories} style={{width: 'auto', padding: '8px 16px'}}>{calculatingCalories ? '⏳ Calcul calories...' : "🏁 TERMINER L'ENTRAÎNEMENT"}</button>
 ) : (
 <button onClick={handleStartWorkout} style={{width: 'auto', padding: '8px 16px'}}>▶️ Commencer l'entraînement</button>
 )}
 </div>
-
 {currentWeekPlan.days.map((day, dayIdx) => {
 const order = exerciseOrder[dayIdx] || day.exercises.map((_, i) => i);
 return (
 <div key={dayIdx} className="workout-day">
 <h3>{day.day} - {day.type}</h3>
-
 {order.map((exIdx, pos) => {
 const ex = day.exercises[exIdx];
 const logKey = dayIdx + '-' + exIdx;
@@ -961,7 +1024,6 @@ const seriesCount = (logged.series || []).length;
 const isDragging = dragInfo && dragInfo.dayIdx === dayIdx && dragInfo.pos === pos;
 const isDragOver = dragOverInfo && dragOverInfo.dayIdx === dayIdx && dragOverInfo.pos === pos;
 const isSettled = settledInfo && settledInfo.dayIdx === dayIdx && settledInfo.exIdx === exIdx;
-
 return (
 <div key={exIdx} className={'exercise-log' + (isDragOver ? ' drag-over' : '') + (isSettled ? ' drag-settled' : '')} draggable onDragStart={() => handleDragStart(dayIdx, pos)} onDragOver={(e) => { e.preventDefault(); handleDragOverItem(dayIdx, pos); }} onDrop={(e) => { e.preventDefault(); handleDropItem(dayIdx, pos); }} onDragEnd={handleDragEndItem} style={{opacity: isDragging ? 0.5 : 1}}>
 <div className="exercise-log-header" onClick={() => setExerciseModal({ name: ex.name })}>
@@ -978,7 +1040,6 @@ return (
 <p style={{marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)'}}>
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
-
 <p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
 <button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type)}>▶️ COMMENCER CET EXERCICE</button>
 </div>
@@ -989,18 +1050,15 @@ return (
 })}
 </div>
 )}
-
 {currentTab === 'plan' && !currentWeekPlan && (
 <div className="message info">Allez dans l'onglet Configuration pour générer votre plan d'entraînement</div>
 )}
-
 {currentTab === 'chat' && (
 <div>
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>Coach IA</h2>
 <p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>
 Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach peut aussi proposer d'ajuster ton plan, mais il te demandera toujours ta confirmation avant de l'appliquer.
 </p>
-
 <div className="chat-container">
 <div className="chat-messages">
 {chatMessages.length === 0 && (
@@ -1024,7 +1082,6 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 {loading && (<div className="chat-message assistant"><span className="spinner"></span> Coach réfléchit...</div>)}
 <div ref={chatEndRef} />
 </div>
-
 <div className="chat-input-area">
 <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()} placeholder="Votre question..." disabled={loading} />
 <button onClick={sendChatMessage} disabled={loading} style={{margin: 0}}>↩️</button>
@@ -1032,16 +1089,77 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 </div>
 </div>
 )}
-
 {currentTab === 'history' && (
 <div>
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique &amp; Progression</h2>
+{currentWeekPlan && Object.keys(logs).some(k => { const l = logs[k]; return l && (((l.series || []).length > 0) || l.distance || l.time); }) && (
+<div className="history-week" style={{borderLeftColor: 'var(--green)'}}>
+<div className="history-week-header">
+<h3>{'🟢 Semaine ' + currentWeekPlan.week + ' — En cours'}</h3>
+</div>
+<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume({ plan: currentWeekPlan, logs: logs }) + " kg cumulés jusqu'ici"}</p>
+{(currentWeekPlan.days || []).map((day, dayIdx) => {
+const stats = computeDayStats({ plan: currentWeekPlan, logs: logs }, dayIdx, day);
+if (stats.loggedCount === 0) return null;
+const cardKey = 'current-' + dayIdx;
+const isOpen = !!expandedWorkouts[cardKey];
+return (
+<div className="workout-card" key={dayIdx} onClick={() => toggleWorkout(cardKey)}>
+<div className="workout-card-header">
+<div className="workout-card-header-left">
+<span className="workout-card-icon">{typeIcon(day.type)}</span>
+<span><strong>{day.day}</strong> <span className="workout-card-daytype">— {day.type}</span></span>
+</div>
+<div className="workout-card-header-right">
+<span className="chevron">{isOpen ? '▾' : '▸'}</span>
+</div>
+</div>
+<div className="workout-card-summary">{summaryLine(day, stats)}{sessionCalories[dayIdx] != null ? (' · 🔥 ' + sessionCalories[dayIdx] + ' kcal') : ''}</div>
+{isOpen && (
+<div className="workout-card-body" onClick={(e) => e.stopPropagation()}>
+{(day.exercises || []).map((ex, exIdx) => {
+const log = logs[dayIdx + '-' + exIdx] || {};
+const logSets = log.series || [];
+const hasLog = logSets.length > 0 || log.distance || log.time || log.notes;
+if (!hasLog) return null;
+let maxW = 0;
+logSets.forEach(s => { const w = parseFloat(s.weight) || 0; if (w > maxW) maxW = w; });
+return (
+<div key={exIdx} className="history-exercise-row">
+<div style={{flex: 1}}>
+<div className="workout-card-exercise-name">{ex.name}</div>
+<div className="workout-card-exercise-detail">
+{'Réalisé: '}
+{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
+{log.distance ? (log.distance + 'km ') : ''}
+{log.time ? (log.time + ' ') : ''}
+{log.heartRate ? ('· FC moy ' + log.heartRate + 'bpm ') : ''}
+{log.notes ? ('— "' + log.notes + '"') : ''}
+{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
+</div>
+</div>
+</div>
+);
+})}
+{sessionCalories[dayIdx] != null && (<div className="workout-card-total">{'🔥 Calories estimées: ' + sessionCalories[dayIdx] + ' kcal'}</div>)}
+</div>
+)}
+</div>
+);
+})}
+</div>
+)}
 {weekHistory.length === 0 && (
 <div className="message info">Aucune semaine terminée pour l'instant. Complète ta semaine et clique sur "✅ Terminer la semaine" dans l'onglet Plan pour commencer ton historique.</div>
 )}
 {weekHistory.length > 0 && (
 <div>
 <h3 className="section-title">Vue d'ensemble par activité</h3>
+<div className="preset-row" style={{marginBottom: '10px'}}>
+{[{id: 'week', label: 'Semaine'}, {id: 'month', label: 'Mois'}, {id: 'year', label: 'Année'}, {id: 'all', label: 'Tout'}].map(p => (
+<button key={p.id} type="button" className="preset-btn" style={caloriesPeriod === p.id ? {borderColor: 'var(--orange)', color: 'var(--orange-light)', background: 'var(--surface-3)'} : {}} onClick={() => setCaloriesPeriod(p.id)}>{p.label}</button>
+))}
+</div>
 <div className="stats">
 <div className="stat-card">
 <div className="value">{totalSessionsCompleted}</div>
@@ -1050,6 +1168,10 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 <div className="stat-card">
 <div className="value">{totalVolumeAllTime}</div>
 <div className="label">Kg soulevés au total</div>
+</div>
+<div className="stat-card">
+<div className="value">{computeTotalCalories(caloriesPeriod)}</div>
+<div className="label">{'🔥 Calories (' + (caloriesPeriod === 'week' ? 'semaine' : caloriesPeriod === 'month' ? 'mois' : caloriesPeriod === 'year' ? 'année' : 'tout') + ')'}</div>
 </div>
 </div>
 <div className="type-stats-grid" style={{marginBottom: '20px'}}>
@@ -1062,7 +1184,6 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 </div>
 ))}
 </div>
-
 <h3 style={{marginBottom: '10px', fontSize: '14px', color: 'var(--text-dim)'}}>Volume total (poids x reps) par semaine</h3>
 <div className="chart-container">
 {weekHistory.slice(-8).map((w, idx, arr) => {
@@ -1077,7 +1198,6 @@ return (
 );
 })}
 </div>
-
 <h3 className="section-title" style={{marginTop: '10px'}}>Détail des séances</h3>
 {reversedHistory.map(({ entry: w, idx: wIdx }) => (
 <div className="history-week" key={wIdx}>
@@ -1102,13 +1222,15 @@ return (
 <span className="chevron">{isOpen ? '▾' : '▸'}</span>
 </div>
 </div>
-<div className="workout-card-summary">{summaryLine(day, stats)}</div>
+<div className="workout-card-summary">{summaryLine(day, stats)}{w.dayCalories && w.dayCalories[dayIdx] != null ? (' · 🔥 ' + w.dayCalories[dayIdx] + ' kcal') : ''}</div>
 {isOpen && (
 <div className="workout-card-body" onClick={(e) => e.stopPropagation()}>
 {(day.exercises || []).map((ex, exIdx) => {
 const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
 const logSets = log.series || [];
 const hasLog = logSets.length > 0 || log.distance || log.time || log.notes;
+let maxW = 0;
+logSets.forEach(s => { const wt = parseFloat(s.weight) || 0; if (wt > maxW) maxW = wt; });
 return (
 <div key={exIdx} className="history-exercise-row">
 <div style={{flex: 1}}>
@@ -1121,9 +1243,11 @@ return (
 {logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
+{log.heartRate ? ('· FC moy ' + log.heartRate + 'bpm ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
 </React.Fragment>
 )}
+{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
 </div>
 </div>
 {hasLog && (
@@ -1132,7 +1256,7 @@ return (
 </div>
 );
 })}
-<div className="workout-card-total">{totalLine(day, stats)}</div>
+<div className="workout-card-total">{totalLine(day, stats)}{w.dayCalories && w.dayCalories[dayIdx] != null ? (' · 🔥 ' + w.dayCalories[dayIdx] + ' kcal') : ''}</div>
 </div>
 )}
 </div>
@@ -1169,7 +1293,6 @@ return (
 </div>
 );
 })()}
-
 {logModal && (() => {
 const info = getExerciseInfo(logModal.name);
 const key = logModal.dayIdx + '-' + logModal.exIdx;
@@ -1211,7 +1334,6 @@ return (
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
 {seriesFeedback && <p className="series-feedback">Série enregistrée ✓</p>}
-
 {restTimer ? (
 <div style={{textAlign: 'center', marginTop: '12px'}}>
 {restTimer.running ? (
@@ -1235,18 +1357,19 @@ return (
 )}
 </div>
 )}
-
 <div className="optional-extra-fields">
 {isCardioType ? (
 <React.Fragment>
 <p className="section-title" style={{fontSize: '13px', marginTop: '4px'}}>Détails de la séance</p>
 <input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value})} />
 <input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value})} />
+<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
 <textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
 </React.Fragment>
 ) : (
 <React.Fragment>
 <p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
+<input type="number" placeholder="FC moyenne (bpm) - optionnel" value={logged.heartRate || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {heartRate: e.target.value})} />
 <textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
 </React.Fragment>
 )}
@@ -1256,7 +1379,6 @@ return (
 </div>
 );
 })()}
-
 {exerciseSummary && (
 <div className="modal-overlay" onClick={() => setExerciseSummary(null)}>
 <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{textAlign: 'center'}}>
@@ -1267,10 +1389,18 @@ return (
 </div>
 </div>
 )}
+{sessionSummary && (
+<div className="modal-overlay" onClick={() => setSessionSummary(null)}>
+<div className="modal-box" onClick={(e) => e.stopPropagation()} style={{textAlign: 'center'}}>
+<h3 style={{marginBottom: '10px'}}>🔥 Calories estimées</h3>
+{sessionSummary.days.map((d, i) => (<p key={i} style={{marginBottom: '6px'}}>{d.name + ': ' + d.calories + ' kcal'}</p>))}
+<button type="button" className="btn-secondary" style={{marginTop: '10px'}} onClick={() => setSessionSummary(null)}>Fermer</button>
+</div>
+</div>
+)}
 </div>
 );
 }
-
 ReactDOM.render(<FitCoachApp />, document.getElementById('root'));
 </script>
 </body>
