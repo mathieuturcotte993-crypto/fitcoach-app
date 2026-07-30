@@ -501,6 +501,73 @@ function saveWeightEntry(dateStr, weightVal) { return idbPut('weights', dateStr,
 function loadWeights() { return idbGetAll('weights').catch((e) => { console.error('loadWeights error', e); return []; }); }
 function deleteAllData() { return Promise.all(['config', 'plans', 'history', 'weights'].map((s) => idbClearStore(s))); }
 
+function idbEntries(storeName) {
+  return initDB().then((db) => new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const results = [];
+      const req = store.openCursor();
+      req.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) { results.push({ key: cursor.key, value: cursor.value }); cursor.continue(); }
+        else resolve(results);
+      };
+      req.onerror = (e) => reject((e.target && e.target.error) || new Error('Erreur lecture IndexedDB (' + storeName + ')'));
+    } catch (e) { reject(e); }
+  }));
+}
+
+const SYNC_STORES = ['config', 'plans', 'history', 'weights'];
+
+function buildSyncSnapshot() {
+  return Promise.all(SYNC_STORES.map((s) => idbEntries(s))).then((lists) => {
+    const stores = {};
+    SYNC_STORES.forEach((s, i) => { stores[s] = lists[i]; });
+    (stores.config || []).forEach((entry) => {
+      if (entry.value && typeof entry.value === 'object') {
+        const clean = Object.assign({}, entry.value);
+        delete clean.apiKey;
+        entry.value = clean;
+      }
+    });
+    return { version: 1, updatedAt: new Date().toISOString(), stores: stores };
+  });
+}
+
+function restoreSyncSnapshot(payload) {
+  if (!payload || !payload.stores) return Promise.reject(new Error('Sauvegarde en ligne invalide'));
+  return idbGet('config', 'user').catch(() => null).then((localCfg) => {
+    const localKey = (localCfg && localCfg.apiKey) || localStorage.getItem('apiKey') || '';
+    return SYNC_STORES.reduce((chain, s) => chain.then(() => {
+      const entries = payload.stores[s] || [];
+      return idbClearStore(s).then(() => entries.reduce((c2, e) => c2.then(() => {
+        let v = e.value;
+        if (s === 'config' && e.key === 'user' && v && typeof v === 'object') { v = Object.assign({}, v, { apiKey: localKey }); }
+        return idbPut(s, e.key, v);
+      }), Promise.resolve()));
+    }), Promise.resolve());
+  });
+}
+
+function syncRequest(action, code, data) {
+  return fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({ action: action, code: code, data: data })
+  }).then((r) => r.json().catch(() => ({})).then((j) => ({ status: r.status, body: j || {} })));
+}
+
+function syncErrorLabel(status, body) {
+  const code = (body && body.error) || '';
+  if (status === 503 || code === 'storage_not_configured') return 'La base de donnees n est pas encore branchee sur Vercel.';
+  if (code === 'invalid_code') return 'Code de synchronisation invalide (8 caracteres minimum, lettres/chiffres/-/_).';
+  if (code === 'too_large') return 'Sauvegarde trop volumineuse.';
+  if (status === 404) return 'Route /api/data introuvable (deploiement en cours ?).';
+  return 'Erreur de synchronisation (' + (code || status) + ').';
+}
+
 function FitCoachApp() {
 const [currentTab, setCurrentTab] = useState('setup');
 const [apiKey, setApiKey] = useState(() => localStorage.getItem('apiKey') || '');
@@ -573,6 +640,13 @@ const [seriesFeedback, setSeriesFeedback] = useState(false);
 const [restTimer, setRestTimer] = useState(null);
 const [exerciseSummary, setExerciseSummary] = useState(null);
 const [editLog, setEditLog] = useState(null);
+const [syncCode, setSyncCode] = useState(() => localStorage.getItem('fitcoachSyncCode') || '');
+const [syncCodeInput, setSyncCodeInput] = useState(() => localStorage.getItem('fitcoachSyncCode') || '');
+const [syncState, setSyncState] = useState('idle');
+const [syncInfo, setSyncInfo] = useState('');
+const [lastSyncAt, setLastSyncAt] = useState(() => localStorage.getItem('fitcoachSyncedAt') || '');
+const [syncPulled, setSyncPulled] = useState(false);
+
 const [exerciseOrder, setExerciseOrder] = useState({});
 const [dragInfo, setDragInfo] = useState(null);
 const [dragOverInfo, setDragOverInfo] = useState(null);
@@ -1660,6 +1734,119 @@ return { ...w, logs: newLogs };
 }));
 };
 
+const formatSyncDate = (iso) => {
+if (!iso) return '\u2014';
+try {
+const d = new Date(iso);
+return d.toLocaleDateString('fr-CA') + ' ' + d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+} catch (e) { return iso; }
+};
+
+const markSynced = (iso) => {
+const v = iso || new Date().toISOString();
+localStorage.setItem('fitcoachSyncedAt', v);
+setLastSyncAt(v);
+};
+
+const pushSync = (mode) => {
+if (!syncCode) return Promise.resolve(false);
+setSyncState('saving');
+return buildSyncSnapshot().then((snap) => syncRequest('set', syncCode, snap).then((r) => {
+if (r.status === 200 && r.body && r.body.ok) {
+markSynced(snap.updatedAt);
+setSyncState('saved');
+setSyncInfo('');
+if (mode === 'manual') setMessage('\u2601\ufe0f Donnees sauvegardees en ligne');
+return true;
+}
+setSyncState('error');
+setSyncInfo(syncErrorLabel(r.status, r.body));
+if (mode === 'manual') setMessage('\u26a0\ufe0f ' + syncErrorLabel(r.status, r.body));
+return false;
+})).catch((e) => {
+setSyncState('error');
+setSyncInfo('Erreur: ' + (e.message || e));
+return false;
+});
+};
+
+const pullSync = (mode) => {
+if (!syncCode) return Promise.resolve(false);
+setSyncState('loading');
+return syncRequest('get', syncCode, null).then((r) => {
+if (r.status !== 200 || !r.body || !r.body.ok) {
+setSyncState('error');
+setSyncInfo(syncErrorLabel(r.status, r.body));
+if (mode === 'manual') setMessage('\u26a0\ufe0f ' + syncErrorLabel(r.status, r.body));
+return false;
+}
+const remote = r.body.data;
+if (!remote || !remote.stores) {
+setSyncState('idle');
+setSyncInfo('Aucune sauvegarde en ligne pour ce code pour le moment.');
+if (mode === 'manual') setMessage('Aucune sauvegarde en ligne trouvee pour ce code');
+return false;
+}
+const localSynced = localStorage.getItem('fitcoachSyncedAt') || '';
+if (mode === 'auto' && localSynced && remote.updatedAt && remote.updatedAt <= localSynced) {
+setSyncState('saved');
+return false;
+}
+if (mode === 'manual' && !window.confirm('Remplacer les donnees de cet appareil par la sauvegarde en ligne du ' + formatSyncDate(remote.updatedAt) + ' ?')) return false;
+return restoreSyncSnapshot(remote).then(() => {
+markSynced(remote.updatedAt);
+setSyncState('saved');
+setMessage('\u2601\ufe0f Donnees restaurees depuis le serveur \u2014 rechargement...');
+setTimeout(() => window.location.reload(), 800);
+return true;
+});
+}).catch((e) => {
+setSyncState('error');
+setSyncInfo('Erreur: ' + (e.message || e));
+return false;
+});
+};
+
+const saveSyncCode = () => {
+const c = (syncCodeInput || '').trim();
+if (!c) {
+localStorage.removeItem('fitcoachSyncCode');
+setSyncCode('');
+setSyncState('idle');
+setSyncInfo('');
+setMessage('Sauvegarde en ligne desactivee sur cet appareil');
+return;
+}
+if (!/^[A-Za-z0-9_-]{8,64}$/.test(c)) {
+setMessage('\u26a0\ufe0f Code invalide : 8 caracteres minimum, lettres, chiffres, - ou _');
+return;
+}
+localStorage.setItem('fitcoachSyncCode', c);
+setSyncCode(c);
+setSyncPulled(false);
+setSyncInfo('');
+setMessage('\u2705 Code enregistre \u2014 sauvegarde en ligne activee');
+};
+
+const generateSyncCode = () => {
+const chars = 'abcdefghijkmnopqrstuvwxyz23456789';
+let s = '';
+for (let i = 0; i < 14; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+setSyncCodeInput('fit-' + s);
+};
+
+useEffect(() => {
+if (!dataReady || !syncCode || syncPulled) return;
+setSyncPulled(true);
+pullSync('auto');
+}, [dataReady, syncCode, syncPulled]);
+
+useEffect(() => {
+if (!dataReady || !syncCode) return;
+const t = setTimeout(() => { pushSync('auto'); }, 5000);
+return () => clearTimeout(t);
+}, [dataReady, syncCode, logs, currentWeekPlan, weekHistory, weekNumber, dayWorkoutTimes, exerciseOrder, sessionCalories, exerciseProgression, userLevel, userGoals, userEquipmentList, userPlaces, userWeight, userAge, userHeight, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, chatMessages]);
+
 const handleDeleteAllData = () => {
   if (!window.confirm('Es-tu sur ? Cette action est irreversible.')) return;
   deleteAllData().then(() => {
@@ -1667,6 +1854,13 @@ const handleDeleteAllData = () => {
     setUserLevel('intermediate');
     setUserEquipmentList((EQUIPMENT_PRESETS.find(p => p.id === 'muscu_standard') || {}).items || []);
     setUserPlaces(['muscu_standard']);
+    localStorage.removeItem('fitcoachSyncCode');
+    localStorage.removeItem('fitcoachSyncedAt');
+    setSyncCode('');
+    setSyncCodeInput('');
+    setLastSyncAt('');
+    setSyncState('idle');
+    setSyncInfo('');
     setUserGoals('');
     setUserWeight('');
     setUserAge('');
@@ -1761,9 +1955,34 @@ userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: we
 chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
 }).then(() => setMessage('✅ Profil sauvegardé')).catch((e) => setMessage('Erreur sauvegarde: ' + e.message));
 }}>💾 Sauvegarder mon profil</button>
+<div className="dashboard-block" style={{marginTop: '22px'}}>
+<h2 className="section-title">☁️ Sauvegarde en ligne</h2>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Choisis un code personnel : tes donnees (configuration, plans, series, historique) sont copiees sur le serveur et reviennent automatiquement sur n importe quel appareil, meme apres avoir vide le cache du navigateur. Ta cle API Claude n est jamais envoyee au serveur.</p>
+<div className="form-group">
+<label>🔑 Code de synchronisation</label>
+<input type="text" value={syncCodeInput} onChange={(e) => setSyncCodeInput(e.target.value)} placeholder="Ex: fit-mathieu-2026" />
+<small className="field-hint">8 caracteres minimum (lettres, chiffres, - ou _). Note-le quelque part : c est lui qui te permet de retrouver tes donnees. Garde-le prive.</small>
+</div>
+<div className="hist-actions">
+<button type="button" className="hist-icon-btn" onClick={generateSyncCode}>🎲 Generer un code</button>
+<button type="button" className="hist-icon-btn" onClick={saveSyncCode}>💾 Enregistrer le code</button>
+</div>
+{syncCode && (
+<React.Fragment>
+<div className="recap-box" style={{marginTop: '12px'}}>
+<div className="recap-line">{'🔗 Code actif : ' + syncCode}</div>
+<div className="recap-line">{'🕒 Derniere sauvegarde en ligne : ' + formatSyncDate(lastSyncAt)}</div>
+<div className="recap-line">{'📡 Etat : ' + (syncState === 'saving' ? 'envoi en cours...' : (syncState === 'loading' ? 'lecture du serveur...' : (syncState === 'saved' ? 'a jour' : (syncState === 'error' ? 'erreur' : 'en attente'))))}</div>
+</div>
+{syncInfo && (<small className="field-hint" style={{color: 'var(--orange-light)'}}>{syncInfo}</small>)}
+<button type="button" style={{marginTop: '10px'}} onClick={() => pushSync('manual')}>⬆️ Sauvegarder maintenant</button>
+<button type="button" className="btn-secondary" style={{marginTop: '8px'}} onClick={() => pullSync('manual')}>⬇️ Restaurer depuis le serveur</button>
+</React.Fragment>
+)}
+</div>
 <div className="dashboard-block" style={{marginTop: '22px', borderBottom: 'none', paddingBottom: 0}}>
 <h2 className="section-title">Gérer mes données</h2>
-<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données (paramètres, configuration, plans, historique) sont stockées dans IndexedDB : elles survivent à la suppression de l'historique de navigation. Utilise ce bouton pour tout effacer définitivement de l'application.</p>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données sont stockées dans ton navigateur (IndexedDB) : elles disparaissent si tu effaces les données de site ou le cache. Active la sauvegarde en ligne ci-dessus pour ne plus rien perdre. Le bouton ci-dessous efface définitivement les données de cet appareil (la sauvegarde en ligne, elle, est conservée).</p>
 <button type="button" className="btn-danger" onClick={handleDeleteAllData}>Supprimer TOUTES mes données de l'app</button>
 </div>
 </div>
