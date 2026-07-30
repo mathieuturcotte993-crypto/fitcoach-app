@@ -1848,8 +1848,15 @@ return () => clearTimeout(t);
 }, [dataReady, syncCode, logs, currentWeekPlan, weekHistory, weekNumber, dayWorkoutTimes, exerciseOrder, sessionCalories, exerciseProgression, userLevel, userGoals, userEquipmentList, userPlaces, userWeight, userAge, userHeight, userSessionsPerWeek, userSessionDuration, userTrainingDays, userTrainingTypes, userConstraints, chatMessages]);
 
 const handleDeleteAllData = () => {
-  if (!window.confirm('Es-tu sur ? Cette action est irreversible.')) return;
-  deleteAllData().then(() => {
+  const codeToWipe = (syncCode || '').trim();
+  const warnMsg = codeToWipe
+    ? 'Es-tu sur ? Cette action est irreversible. Tes donnees seront effacees sur cet appareil ET la sauvegarde en ligne (code ' + codeToWipe + ') sera supprimee du serveur.'
+    : 'Es-tu sur ? Cette action est irreversible.';
+  if (!window.confirm(warnMsg)) return;
+  const wipeServer = codeToWipe
+    ? syncRequest('delete', codeToWipe).then((res) => (res.status === 200 && res.body && res.body.ok) ? 'ok' : 'fail').catch(() => 'fail')
+    : Promise.resolve('none');
+  wipeServer.then((serverResult) => deleteAllData().then(() => {
     setApiKey('');
     setUserLevel('intermediate');
     setUserEquipmentList((EQUIPMENT_PRESETS.find(p => p.id === 'muscu_standard') || {}).items || []);
@@ -1886,8 +1893,10 @@ const handleDeleteAllData = () => {
     setAllowExtraSet(false);
     localStorage.removeItem('fitcoach_idb_migrated');
     setCurrentTab('setup');
-    setMessage('Toutes tes donnees ont ete supprimees');
-  }).catch((e) => {
+    if (serverResult === 'ok') setMessage('Toutes tes donnees ont ete supprimees (appareil + sauvegarde en ligne)');
+    else if (serverResult === 'fail') setMessage('Donnees supprimees sur cet appareil, mais la sauvegarde en ligne n a pas pu etre effacee. Reessaie plus tard.');
+    else setMessage('Toutes tes donnees ont ete supprimees');
+  })).catch((e) => {
     setMessage('Erreur lors de la suppression des donnees: ' + e.message);
   });
 };
@@ -1982,7 +1991,7 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 </div>
 <div className="dashboard-block" style={{marginTop: '22px', borderBottom: 'none', paddingBottom: 0}}>
 <h2 className="section-title">Gérer mes données</h2>
-<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données sont stockées dans ton navigateur (IndexedDB) : elles disparaissent si tu effaces les données de site ou le cache. Active la sauvegarde en ligne ci-dessus pour ne plus rien perdre. Le bouton ci-dessous efface définitivement les données de cet appareil (la sauvegarde en ligne, elle, est conservée).</p>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données sont stockées dans ton navigateur (IndexedDB) : elles disparaissent si tu effaces les données de site ou le cache. Active la sauvegarde en ligne ci-dessus pour ne plus rien perdre. Le bouton ci-dessous remet tout à zéro : il efface définitivement les données de cet appareil ET la sauvegarde en ligne associée à ton code de synchronisation.</p>
 <button type="button" className="btn-danger" onClick={handleDeleteAllData}>Supprimer TOUTES mes données de l'app</button>
 </div>
 </div>
