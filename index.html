@@ -297,6 +297,37 @@ input, select, textarea { padding: 12px; font-size: 16px; }
 .tab-btn { font-size: 11px; padding: 10px 2px; }
 .header h1 { font-size: 28px; }
 }
+/* ---- Fluidite UX v10 ---- */
+.app { overflow: visible; }
+.header { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+.content { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+.tab-buttons { position: sticky; top: 0; z-index: 30; background: rgba(15,15,19,0.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); margin-left: -20px; margin-right: -20px; padding: 6px 20px 0; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+.tab-buttons::-webkit-scrollbar { display: none; }
+.tab-btn { min-height: 46px; min-width: 74px; scroll-snap-align: center; }
+button, .tab-btn, .chip, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:active:not(:disabled) { transform: scale(0.97); box-shadow: 0 2px 10px rgba(255,122,26,0.22); }
+html { scroll-behavior: smooth; }
+body { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+.no-scroll { overflow: hidden !important; }
+.message-toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 200; width: min(560px, calc(100vw - 24px)); margin: 0; box-shadow: 0 12px 34px rgba(0,0,0,0.55); backdrop-filter: blur(10px); animation: toastIn 0.26s cubic-bezier(0.05,0.7,0.1,1); }
+@keyframes toastIn { 0% { opacity: 0; transform: translateX(-50%) translateY(16px); } 100% { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.message-toast.info { background: rgba(40,27,14,0.96); }
+.message-toast.success { background: rgba(18,34,21,0.96); }
+.message-toast.error { background: rgba(40,18,18,0.96); }
+.top-progress { position: fixed; top: 0; left: 0; height: 3px; width: 100%; z-index: 300; overflow: hidden; pointer-events: none; }
+.top-progress span { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, transparent, var(--orange), var(--orange-light), transparent); animation: topProgress 1.1s linear infinite; }
+@keyframes topProgress { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
+.prep-panel { border: 1px solid var(--orange-dark); border-radius: 12px; padding: 12px; margin-bottom: 14px; background: linear-gradient(180deg, rgba(255,122,26,0.07), rgba(255,122,26,0.02)); }
+.prep-panel-title { font-weight: 700; color: var(--orange-light); margin-bottom: 6px; font-size: 14px; }
+.prep-hint { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.5; }
+.prep-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.prep-chip { width: auto; padding: 8px 12px; font-size: 12px; border-radius: 999px; background: var(--surface-2); color: var(--orange-light); border: 1px solid var(--orange-dark); box-shadow: none; font-weight: 600; }
+.prep-chip:hover:not(:disabled) { background: rgba(255,122,26,0.16); transform: none; box-shadow: none; }
+.prep-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.prep-actions button { flex: 1 1 210px; width: auto; }
+.prep-ready-badge { display: inline-block; font-size: 11px; font-weight: 700; color: var(--green); border: 1px solid var(--green); border-radius: 999px; padding: 2px 8px; margin-left: 6px; }
+.prep-chat { height: 330px; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
@@ -640,6 +671,12 @@ const [logs, setLogs] = useState(() => JSON.parse(localStorage.getItem('logs') |
 const [weekHistory, setWeekHistory] = useState(() => JSON.parse(localStorage.getItem('weekHistory') || '[]'));
 const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages') || '[]'));
 const [pendingPlanUpdate, setPendingPlanUpdate] = useState(() => JSON.parse(localStorage.getItem('pendingPlanUpdate') || 'null'));
+const [prepMessages, setPrepMessages] = useState([]);
+const [prepInput, setPrepInput] = useState('');
+const [prepOpen, setPrepOpen] = useState(false);
+const [prepReady, setPrepReady] = useState(false);
+const [prepChips, setPrepChips] = useState([]);
+const [prepLoading, setPrepLoading] = useState(false);
 const [exerciseProgression, setExerciseProgression] = useState(() => JSON.parse(localStorage.getItem('exerciseProgression') || '[]'));
 const [sessionCalories, setSessionCalories] = useState(() => JSON.parse(localStorage.getItem('sessionCalories') || '{}'));
 const [sessionSummary, setSessionSummary] = useState(null);
@@ -682,6 +719,26 @@ const chatEndRef = useRef(null);
 useEffect(() => {
 chatEndRef.current && chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
 }, [chatMessages, pendingPlanUpdate]);
+const prepEndRef = useRef(null);
+
+useEffect(() => {
+prepEndRef.current && prepEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}, [prepMessages, prepLoading, prepChips]);
+
+const haptic = (pattern) => {
+try { if (navigator && typeof navigator.vibrate === 'function') navigator.vibrate(pattern); } catch (e) {}
+};
+
+useEffect(() => {
+if (!message) return;
+const delay = message.indexOf('Erreur') === 0 ? 7000 : 4500;
+const t = setTimeout(() => setMessage(''), delay);
+return () => clearTimeout(t);
+}, [message]);
+
+useEffect(() => {
+try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+}, [currentTab]);
 const [dataReady, setDataReady] = useState(false);
 const [loadFailed, setLoadFailed] = useState(false);
 const [syncVersions, setSyncVersions] = useState(null);
@@ -1462,16 +1519,171 @@ setDayWorkoutTimes(prev => ({ ...prev, [logModal.dayIdx]: { start: timestamp, en
 setLogs(prev => {
 const existing = prev[key] || {};
 const series = existing.series || [];
-return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSetWeight, reps: currentSetReps, timestamp: timestamp }], draftWeight: '', draftReps: '' } };
+return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSetWeight, reps: currentSetReps, timestamp: timestamp }], draftWeight: currentSetWeight, draftReps: currentSetReps } };
 });
-setCurrentSetWeight('');
-setCurrentSetReps('');
 setAllowExtraSet(false);
+haptic([10, 30, 12]);
 setSeriesFeedback(true);
 setTimeout(() => setSeriesFeedback(false), 1500);
 };
 
-const generateWeekPlan = async () => {
+const buildTrainingContextText = () => {
+const lines = [];
+lines.push('PROFIL DE L ATHLETE');
+lines.push('- Poids: ' + (userWeight ? userWeight + ' kg' : 'non renseigne') + ' | Age: ' + (userAge ? userAge + ' ans' : 'non renseigne') + ' | Taille: ' + (userHeight ? userHeight + ' cm' : 'non renseignee'));
+lines.push('- Niveau: ' + getLevelLabel());
+lines.push('- Objectifs: ' + ((userGoals || '').trim() || 'non precises'));
+lines.push('- Contraintes ou blessures: ' + ((userConstraints || '').trim() || 'aucune signalee'));
+lines.push('- Disponibilite: ' + (parseInt(userSessionsPerWeek, 10) || 5) + ' seances de ~' + (parseInt(userSessionDuration, 10) || 60) + ' min' + (userTrainingDays.length ? ' les ' + userTrainingDays.join(', ') : ''));
+lines.push('- Types souhaites: ' + (userTrainingTypes.length ? userTrainingTypes.join(', ') : 'au choix du coach'));
+const places = getPlaceLabels();
+lines.push('- Lieux accessibles cette semaine: ' + (places.length ? places.join(' + ') : 'non precise'));
+lines.push('- Equipement disponible: ' + equipmentDescriptionText());
+lines.push('- Semaine a preparer: semaine ' + weekNumber);
+const hist = (weekHistory || []).slice(-4);
+if (hist.length) {
+lines.push('');
+lines.push('HISTORIQUE REEL DES DERNIERES SEMAINES');
+hist.forEach((w) => {
+let vol = 0;
+try { vol = computeWeekTotalVolume(w); } catch (e) { vol = 0; }
+const nbDays = (w.plan && w.plan.days) ? w.plan.days.length : 0;
+const details = [];
+Object.entries(w.logs || {}).forEach(([key, val]) => {
+const p = key.split('-').map(Number);
+const day = (w.plan && w.plan.days) ? w.plan.days[p[0]] : null;
+const ex = (day && day.exercises) ? day.exercises[p[1]] : null;
+if (!ex) return;
+const bits = [];
+if (val.series && val.series.length) {
+let maxW = 0;
+let totalReps = 0;
+val.series.forEach((s) => { const wt = parseFloat(s.weight) || 0; if (wt > maxW) maxW = wt; totalReps += (parseInt(s.reps, 10) || 0); });
+bits.push(val.series.length + ' series' + (maxW ? ', max ' + maxW + 'kg' : '') + (totalReps ? ', ' + totalReps + ' reps cumulees' : ''));
+}
+if (val.distance) bits.push(val.distance + 'km');
+if (val.time) bits.push(val.time);
+if (val.allure) bits.push('allure ' + val.allure);
+if (val.heartRate) bits.push('FC ' + val.heartRate + ' bpm');
+if (val.notes) bits.push('note: ' + val.notes);
+if (bits.length) details.push(ex.name + ' (' + bits.join(' / ') + ')');
+});
+lines.push('- Semaine ' + w.week + ': ' + nbDays + ' seances prevues, volume ' + Math.round(vol) + ' kg' + (details.length ? ' | ' + details.join(' ; ') : ' | aucune donnee saisie'));
+});
+} else {
+lines.push('');
+lines.push('HISTORIQUE: aucune semaine terminee pour le moment.');
+}
+const curKeys = Object.keys(logs || {});
+if (currentWeekPlan && curKeys.length) {
+const curDetails = [];
+curKeys.forEach((key) => {
+const p = key.split('-').map(Number);
+const day = currentWeekPlan.days ? currentWeekPlan.days[p[0]] : null;
+const ex = (day && day.exercises) ? day.exercises[p[1]] : null;
+const val = logs[key] || {};
+if (!ex) return;
+const bits = [];
+if (val.series && val.series.length) bits.push(val.series.map((s) => (s.weight || '-') + 'kg x ' + (s.reps || '-') + ' reps').join(', '));
+if (val.distance) bits.push(val.distance + 'km');
+if (val.time) bits.push(val.time);
+if (val.allure) bits.push('allure ' + val.allure);
+if (val.notes) bits.push('note: ' + val.notes);
+if (bits.length) curDetails.push(ex.name + ': ' + bits.join(' / '));
+});
+if (curDetails.length) {
+lines.push('');
+lines.push('SEANCES DEJA REALISEES DANS LA SEMAINE EN COURS: ' + curDetails.join(' ; '));
+}
+}
+const progEntries = Object.entries(exerciseProgression || {});
+if (progEntries.length) {
+lines.push('');
+lines.push('PROGRESSION SUIVIE PAR EXERCICE: ' + progEntries.map(([n, v]) => n + ' ' + (v && typeof v === 'object' ? JSON.stringify(v) : v)).join(' ; '));
+}
+return lines.join('\n');
+};
+
+const buildPrepSystem = () => {
+const rules = [
+'REGLES DE LA DISCUSSION:',
+'1) Parle en francais, ton chaleureux et direct, phrases courtes.',
+'2) Pose UNE seule question a la fois, 4 questions maximum au total. Cible uniquement ce qui change vraiment le plan: forme et fatigue du moment, courbatures ou douleurs, priorite de la semaine, contraintes de temps ou de lieu, envie ou lassitude sur certains exercices.',
+'3) Ne repose jamais une question dont la reponse figure deja dans le profil ou l historique ci-dessus. Appuie-toi dessus et montre-le brievement (rappelle par exemple une charge atteinte ou un volume).',
+'4) A la fin de CHAQUE message, propose 2 a 4 reponses rapides dans ce bloc technique exact: [SUGGESTIONS]reponse 1|reponse 2|reponse 3[/SUGGESTIONS]',
+'5) Des que tu as assez d informations, resume en 3 a 5 puces ce que tu vas mettre dans la semaine (types de seances, priorites, charges visees), puis termine ton message par le marqueur [PRET].',
+"6) Ne genere JAMAIS le plan toi-meme et n ecris jamais de JSON: c est le bouton de l application qui declenche la generation.",
+'7) Ne mentionne jamais les marqueurs techniques a l utilisateur.'
+].join('\n');
+return "Tu es un coach sportif expert. Tu discutes avec ton athlete pour preparer sa prochaine semaine d entrainement AVANT que l application ne genere le plan. Ton but est de recueillir les 2 ou 3 informations qui manquent pour rendre le plan vraiment personnalise.\n\n" + buildTrainingContextText() + '\n\n' + rules;
+};
+
+const parsePrepReply = (raw) => {
+let text = String(raw || '');
+let chips = [];
+const m = text.match(/\[SUGGESTIONS\]([\s\S]*?)\[\/SUGGESTIONS\]/);
+if (m) {
+text = text.replace(m[0], '').trim();
+chips = m[1].split('|').map((s) => s.trim()).filter(Boolean).slice(0, 4);
+}
+let ready = false;
+if (text.indexOf('[PRET]') !== -1) {
+ready = true;
+text = text.split('[PRET]').join('').trim();
+}
+return { text: text, chips: chips, ready: ready };
+};
+
+const runPrepTurn = async (msgs) => {
+setPrepLoading(true);
+setPrepChips([]);
+const apiMsgs = msgs.slice(-16).map((m) => ({ role: m.role, content: m.content }));
+const result = await callClaudeAPI(apiMsgs, buildPrepSystem());
+if (result) {
+const parsed = parsePrepReply(result);
+setPrepMessages([...msgs, { role: 'assistant', content: parsed.text }]);
+setPrepChips(parsed.chips);
+if (parsed.ready) { setPrepReady(true); haptic([12, 40, 16]); }
+} else {
+setPrepMessages(msgs);
+}
+setPrepLoading(false);
+};
+
+const startPrepDiscussion = async () => {
+if (!apiKey) { setMessage("Erreur: Cle API manquante — ajoute-la dans l'onglet Profil"); return; }
+setPrepOpen(true);
+setPrepReady(false);
+setPrepChips([]);
+haptic(12);
+const seed = [{ role: 'user', content: 'Prepare ma semaine d entrainement avec moi avant de generer le plan.', hidden: true }];
+setPrepMessages(seed);
+await runPrepTurn(seed);
+};
+
+const sendPrepMessage = async (override) => {
+const txt = (typeof override === 'string' ? override : prepInput).trim();
+if (!txt || prepLoading) return;
+setPrepInput('');
+setPrepChips([]);
+setPrepReady(false);
+haptic(8);
+const next = [...prepMessages, { role: 'user', content: txt }];
+setPrepMessages(next);
+await runPrepTurn(next);
+};
+
+const resetPrepDiscussion = () => {
+setPrepMessages([]);
+setPrepChips([]);
+setPrepReady(false);
+setPrepInput('');
+setPrepOpen(false);
+};
+
+const visiblePrepMessages = () => prepMessages.filter((m) => !m.hidden);
+
+const generateWeekPlan = async (discussionOverride) => {
 if (!apiKey) {
 setMessage("Erreur: Clé API manquante — ajoute-la dans l'onglet Profil");
 return;
@@ -1521,6 +1733,15 @@ if (Object.keys(lastWeekMaxWeights).length) {
 const weightsList = Object.entries(lastWeekMaxWeights).map(([n, w]) => n + ': ' + w + 'kg').join(', ');
 progressionNote += ' Poids maximums soulevés la semaine précédente (par exercice): ' + weightsList + ". Pour chaque exercice de musculation similaire cette semaine, propose un poids conseillé ajusté dans le champ weight: augmente le poids de 5 à 10% si la progression semblait bonne (séries complétées sans difficulté signalée), ou réduis-le d'environ 5% si les notes ou les répétitions indiquent que l'exercice était difficile.";
 }
+const contextNote = '\n\nCONTEXTE COMPLET DE L ATHLETE ET HISTORIQUE REEL (sers-t en pour personnaliser finement charges, volumes et choix d exercices):\n' + buildTrainingContextText() + '\n';
+const discussionSource = Array.isArray(discussionOverride) ? discussionOverride : [];
+let discussionNote = '';
+if (discussionSource.length) {
+const transcript = discussionSource.filter((m) => (m.role === 'user' || m.role === 'assistant') && !m.hidden).slice(-16).map((m) => (m.role === 'user' ? 'Athlete: ' : 'Coach: ') + m.content).join('\n');
+if (transcript) {
+discussionNote = '\n\nDISCUSSION PREPARATOIRE AVEC L ATHLETE (PRIORITAIRE: chaque precision donnee ici doit se retrouver dans le plan, elle prime sur les reglages generiques):\n' + transcript + '\n';
+}
+}
 const nbSessions = parseInt(userSessionsPerWeek, 10) || 5;
 const daysText = userTrainingDays.length ? userTrainingDays.join(', ') : 'au choix (repartis intelligemment dans la semaine)';
 const typesText = userTrainingTypes.length ? userTrainingTypes.join(', ') : 'Musculation, Running, Crossfit, Cardio, Vélo, Randonnée';
@@ -1537,7 +1758,7 @@ const prompt = "Crée un plan d'entraînement complet pour une semaine (" + nbSe
 '- Durée visée par séance: environ ' + (parseInt(userSessionDuration, 10) || 60) + ' minutes\n' +
 '- Jours disponibles: ' + daysText + '\n' +
 (userConstraints.trim() ? ('- Blessures / limitations à respecter absolument: ' + userConstraints.trim() + '\n') : '') +
-"- Types d'entraînement à varier: " + typesText + progressionNote + '\n\n' +
+"- Types d'entraînement à varier: " + typesText + progressionNote + contextNote + discussionNote + '\n\n' +
 'Format de réponse (JSON uniquement, sans texte):\n' +
 '{\n' +
 '"week": ' + weekNumber + ',\n' +
@@ -1561,6 +1782,9 @@ setWeekNumber(plan.week || weekNumber);
 setExerciseOrder({});
 setDayWorkoutTimes({});
 setSelectedPlanDay(0);
+setPrepOpen(false);
+setPrepChips([]);
+haptic([14, 50, 18]);
 setMessage('✅ Plan généré avec succès!');
 setCurrentTab('plan');
 }
@@ -1650,6 +1874,7 @@ const updatedMessages = [...chatMessages, { role: 'user', content: userMsg }];
 setChatMessages(updatedMessages);
 setLoading(true);
 let system = "Tu es un coach sportif IA personnalisé et bienveillant pour l'app FitCoach. Contexte de l'utilisateur: niveau " + userLevel + ', objectifs: "' + (userGoals || 'non précisés') + '", équipement disponible: ' + equipmentDescriptionText() + ", semaine d'entraînement actuelle: " + weekNumber + '. Utilise ce contexte pour donner des conseils personnalisés, concis et pratiques.';
+system += '\n\nDONNEES COMPLETES DE L ATHLETE (profil, equipement, historique reel des seances):\n' + buildTrainingContextText();
 if (currentWeekPlan) {
 system += "\n\nVoici le plan d'entraînement actuel de la semaine, au format JSON: " + JSON.stringify(currentWeekPlan) + "\n\nSi, au fil de la discussion, tu identifies qu'une modification concrète de ce plan serait pertinente (ajouter/retirer/remplacer un exercice, changer les séries, répétitions, poids, ou le type d'une séance, etc.), tu peux la proposer activement. Dans ce cas: 1) Explique clairement en langage normal quel changement tu proposes et pourquoi. 2) Demande explicitement la confirmation de l'utilisateur avant d'appliquer quoi que ce soit (tu ne dois JAMAIS appliquer un changement toi-même). 3) À la toute fin de ta réponse uniquement si tu proposes réellement un changement concret, ajoute ce bloc exact contenant le plan COMPLET mis à jour (tous les jours et exercices, modifiés ou non), au format JSON valide strictement identique à la structure fournie: [PLAN_UPDATE_JSON]{...plan complet ici...}[/PLAN_UPDATE_JSON]. N'inclus ce bloc que si un changement concret est proposé, jamais pour un simple conseil général. Ne mentionne jamais ce bloc technique à l'utilisateur, contente-toi de poser ta question de confirmation normalement en texte.";
 }
@@ -1995,10 +2220,11 @@ return (
 <button className={'tab-btn ' + (currentTab === 'settings' ? 'active' : '')} onClick={() => setCurrentTab('settings')}>👤 Profil</button>
 </div>
 {message && (
-<div className={'message ' + (message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info')}>
+<div className={'message message-toast ' + (message.startsWith('✅') ? 'success' : message.startsWith('Erreur') ? 'error' : 'info')} role="status" onClick={() => setMessage('')}>
 {message}
 </div>
 )}
+{(loading || prepLoading) && (<div className="top-progress"><span></span></div>)}
 
 {currentTab === 'settings' && (
 <div className="tab-panel">
@@ -2226,11 +2452,47 @@ return (
 <p className="recap-line">{'🔀 Types : '}<b>{userTrainingTypes.length ? userTrainingTypes.join(', ') : 'au choix du coach'}</b></p>
 <p className="recap-line" style={{marginBottom: 0}}>{'🎯 Objectifs : '}<b>{getGoalsSummary()}</b></p>
 </div>
+<div className="prep-panel">
+<div className="prep-panel-title">{'💬 Discussion avec le coach avant la génération'}{prepReady && <span className="prep-ready-badge">prêt</span>}</div>
+{!prepOpen && (
+<React.Fragment>
+<p className="prep-hint">Le coach part de ton profil (poids, âge, taille, niveau, objectifs), de ton équipement, de tes lieux d'entraînement et de tout ton historique réel, puis te pose quelques questions ciblées sur ta forme du moment avant de construire la semaine.</p>
+<button className="btn-secondary" onClick={startPrepDiscussion} disabled={prepLoading || loading}>{prepLoading ? (<><span className="spinner"></span>Le coach prépare ses questions...</>) : '💬 Discuter avec le coach'}</button>
+</React.Fragment>
+)}
+{prepOpen && (
+<React.Fragment>
+<div className="chat-container prep-chat">
+<div className="chat-messages">
+{visiblePrepMessages().map((msg, idx) => (
+<div key={idx} className={'chat-message ' + msg.role}>{msg.content}</div>
+))}
+{prepLoading && (<div className="chat-message assistant"><span className="spinner"></span> Coach réfléchit...</div>)}
+{!prepLoading && prepChips.length > 0 && (
+<div className="prep-chips">
+{prepChips.map((chip, i) => (
+<button key={i} className="prep-chip" onClick={() => sendPrepMessage(chip)}>{chip}</button>
+))}
+</div>
+)}
+<div ref={prepEndRef} />
+</div>
+<div className="chat-input-area">
+<input type="text" aria-label="Ta réponse au coach" value={prepInput} onChange={(e) => setPrepInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendPrepMessage()} placeholder="Ta réponse..." disabled={prepLoading} />
+<button aria-label="Envoyer au coach" onClick={() => sendPrepMessage()} disabled={prepLoading} style={{margin: 0}}>↩️</button>
+</div>
+</div>
+<div className="prep-actions">
+<button className="btn-secondary" onClick={resetPrepDiscussion} disabled={prepLoading || loading}>🔄 Recommencer la discussion</button>
+</div>
+</React.Fragment>
+)}
+</div>
 {setupBlockingReason() && (
 <div className="message info">{'⚠️ ' + setupBlockingReason()}</div>
 )}
-<button onClick={generateWeekPlan} disabled={loading || !!setupBlockingReason()}>
-{loading ? (<><span className="spinner"></span>Génération...</>) : ('🚀 Générer le plan — Semaine ' + weekNumber)}
+<button onClick={() => generateWeekPlan(prepMessages)} disabled={loading || prepLoading || !!setupBlockingReason()}>
+{loading ? (<><span className="spinner"></span>Génération...</>) : ((visiblePrepMessages().length ? '🚀 Générer le plan à partir de la discussion — Semaine ' : '🚀 Générer le plan — Semaine ') + weekNumber)}
 </button>
 </div>
 )}
@@ -2757,8 +3019,8 @@ return (
 <div className="set-input-row">
 <label>{'Série ' + (sets.length + 1) + (targetSets > 0 ? ((sets.length + 1) > targetSets ? ' (supplémentaire)' : ' / ' + targetSets) : '')}</label>
 <div className="set-input-fields">
-<input type="number" aria-label="Poids en kilogrammes" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
-<input type="number" aria-label="Nombre de répétitions" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
+<input type="number" inputMode="decimal" step="0.5" aria-label="Poids en kilogrammes" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
+<input type="number" inputMode="numeric" step="1" aria-label="Nombre de répétitions" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
 {seriesFeedback && <p className="series-feedback">Série enregistrée ✓</p>}
