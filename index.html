@@ -137,6 +137,9 @@ border-top: 3px solid var(--orange); border-radius: 50%; animation: spin 1s line
 .set-input-row label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); font-size: 13px; }
 .set-input-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .optional-extra-fields input, .optional-extra-fields textarea { margin-bottom: 10px; }
+.set-input-fields { gap: 16px; margin-bottom: 14px; }
+.set-input-row { padding: 16px; }
+.series-feedback { color: var(--green); font-size: 13px; font-weight: 700; margin-top: 10px; text-align: center; }
 .chart-container { display: flex; align-items: flex-end; gap: 8px; height: 150px; margin: 15px 0; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
 .chart-bar { width: 100%; background: linear-gradient(180deg, var(--orange-light) 0%, var(--orange) 100%); border-radius: 4px 4px 0 0; min-height: 4px; box-shadow: 0 0 10px rgba(255,122,26,0.3); }
@@ -311,6 +314,7 @@ const [logModal, setLogModal] = useState(null);
 const [logModalFrame, setLogModalFrame] = useState(0);
 const [currentSetWeight, setCurrentSetWeight] = useState('');
 const [currentSetReps, setCurrentSetReps] = useState('');
+const [seriesFeedback, setSeriesFeedback] = useState(false);
 const chatEndRef = useRef(null);
 
 useEffect(() => {
@@ -415,7 +419,7 @@ let volume = 0, distance = 0, timeMin = 0, loggedCount = 0;
 (day.exercises || []).forEach((ex, exIdx) => {
 const log = (weekEntry.logs || {})[dayIdx + '-' + exIdx];
 if (!log) return;
-const sets = log.sets || [];
+const sets = log.series || [];
 sets.forEach(s => {
 const w = parseFloat(s.weight) || 0;
 const r = parseFloat(s.reps) || 0;
@@ -509,23 +513,36 @@ setIsTimerRunning(false);
 const openLogModal = (dayIdx, exIdx, name) => {
 setCurrentSetWeight('');
 setCurrentSetReps('');
+const key = dayIdx + '-' + exIdx;
+setLogs(prev => {
+const existing = prev[key] || {};
+if (existing.exerciseStartTime) return prev;
+return { ...prev, [key]: { ...existing, exerciseStartTime: new Date().toISOString() } };
+});
 setLogModal({ dayIdx, exIdx, name });
 };
 
 const closeLogModal = () => {
+if (logModal) {
+const key = logModal.dayIdx + '-' + logModal.exIdx;
+setLogs(prev => ({ ...prev, [key]: { ...(prev[key] || {}), exerciseEndTime: new Date().toISOString() } }));
+}
 setLogModal(null);
 };
 
 const saveSet = () => {
 if (!logModal) return;
 const key = logModal.dayIdx + '-' + logModal.exIdx;
+const timestamp = new Date().toISOString();
 setLogs(prev => {
 const existing = prev[key] || {};
-const sets = existing.sets || [];
-return { ...prev, [key]: { ...existing, sets: [...sets, { weight: currentSetWeight, reps: currentSetReps }] } };
+const series = existing.series || [];
+return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSetWeight, reps: currentSetReps, timestamp }] } };
 });
 setCurrentSetWeight('');
 setCurrentSetReps('');
+setSeriesFeedback(true);
+setTimeout(() => setSeriesFeedback(false), 1500);
 };
 
 const generateWeekPlan = async () => {
@@ -552,7 +569,7 @@ const day = lastWeek.plan.days[dayIdx];
 const ex = day && day.exercises[exIdx];
 if (!ex) return null;
 const details = [];
-if (val.sets && val.sets.length) details.push(val.sets.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
+if (val.series && val.series.length) details.push(val.series.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
 if (val.distance) details.push(val.distance + 'km');
 if (val.time) details.push(val.time);
 if (val.notes) details.push('note: ' + val.notes);
@@ -821,13 +838,11 @@ return (
 </div>
 
 <div className="session-timer-bar">
-{isTimerRunning ? (
-<React.Fragment>
 <div className="session-timer-display">⏱️ {formatTimer(sessionTimer)}</div>
+{isTimerRunning ? (
 <button className="btn-secondary" onClick={handleFinishWorkout} style={{width: 'auto', padding: '8px 16px'}}>🏁 TERMINER L'ENTRAÎNEMENT</button>
-</React.Fragment>
 ) : (
-<button onClick={handleStartWorkout}>▶️ Commencer l'entraînement</button>
+<button onClick={handleStartWorkout} style={{width: 'auto', padding: '8px 16px'}}>▶️ Commencer l'entraînement</button>
 )}
 </div>
 
@@ -839,6 +854,7 @@ return (
 const logKey = dayIdx + '-' + exIdx;
 const logged = logs[logKey] || {};
 const info = getExerciseInfo(ex.name);
+const seriesCount = (logged.series || []).length;
 
 return (
 <div key={exIdx} className="exercise-log">
@@ -850,15 +866,14 @@ return (
 <span className="exercise-thumb-fallback">🎥</span>
 )}
 </div>
-<h4>{ex.name}<br /><span className="exercise-info-hint">ℹ️ Voir démo &amp; vidéo</span></h4>
+<h4>{ex.name}<br /><span className="exercise-info-hint">🎥 Démo &amp; Vidéo</span></h4>
 </div>
 <p style={{marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)'}}>
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
 
-<p className="sets-count-line">{'Séries enregistrées: ' + (logged.sets || []).length}</p>
-<button type="button" className="btn-secondary" onClick={() => openLogModal(dayIdx, exIdx, ex.name)}>▶️ COMMENCER CET EXERCICE</button>
-{((logged.sets && logged.sets.length > 0) || logged.distance || logged.time || logged.notes) && <p style={{fontSize: '12px', color: 'var(--orange-light)', marginTop: '8px'}}>✅ Données enregistrées</p>}
+<p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
+<button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name)}>▶️ COMMENCER CET EXERCICE</button>
 </div>
 );
 })}
@@ -984,7 +999,7 @@ return (
 <div className="workout-card-body" onClick={(e) => e.stopPropagation()}>
 {(day.exercises || []).map((ex, exIdx) => {
 const log = (w.logs || {})[dayIdx + '-' + exIdx] || {};
-const logSets = log.sets || [];
+const logSets = log.series || [];
 const hasLog = logSets.length > 0 || log.distance || log.time || log.notes;
 return (
 <div key={exIdx} className="history-exercise-row">
@@ -1051,7 +1066,7 @@ return (
 const info = getExerciseInfo(logModal.name);
 const key = logModal.dayIdx + '-' + logModal.exIdx;
 const logged = logs[key] || {};
-const sets = logged.sets || [];
+const sets = logged.series || [];
 const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + logModalFrame + '.jpg') : null;
 return (
 <div className="modal-overlay" onClick={closeLogModal}>
@@ -1084,6 +1099,7 @@ return (
 <input type="number" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
+{seriesFeedback && <p className="series-feedback">Série enregistrée ✓</p>}
 </div>
 <div className="optional-extra-fields">
 <p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
