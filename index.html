@@ -315,6 +315,8 @@ const [logModalFrame, setLogModalFrame] = useState(0);
 const [currentSetWeight, setCurrentSetWeight] = useState('');
 const [currentSetReps, setCurrentSetReps] = useState('');
 const [seriesFeedback, setSeriesFeedback] = useState(false);
+const [restTimer, setRestTimer] = useState(null);
+const [exerciseSummary, setExerciseSummary] = useState(null);
 const chatEndRef = useRef(null);
 
 useEffect(() => {
@@ -357,6 +359,33 @@ setLogModalFrame(0);
 const interval = setInterval(() => setLogModalFrame(f => (f === 0 ? 1 : 0)), 900);
 return () => clearInterval(interval);
 }, [logModal]);
+
+useEffect(() => {
+if (!restTimer || !restTimer.running) return;
+const interval = setInterval(() => {
+setRestTimer(prev => {
+if (!prev) return prev;
+if (prev.secondsLeft <= 1) {
+return { ...prev, secondsLeft: 0, running: false, justFinished: true };
+}
+return { ...prev, secondsLeft: prev.secondsLeft - 1 };
+});
+}, 1000);
+return () => clearInterval(interval);
+}, [restTimer && restTimer.running]);
+
+useEffect(() => {
+if (restTimer && restTimer.justFinished) {
+const t = setTimeout(() => setRestTimer(null), 1500);
+return () => clearTimeout(t);
+}
+}, [restTimer && restTimer.justFinished]);
+
+useEffect(() => {
+if (!exerciseSummary) return;
+const t2 = setTimeout(() => setExerciseSummary(null), 3500);
+return () => clearTimeout(t2);
+}, [exerciseSummary]);
 
 const toggleEquipmentItem = (id) => {
 setUserEquipmentList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -501,6 +530,17 @@ const pad = (n) => String(n).padStart(2, '0');
 return pad(h) + ':' + pad(m) + ':' + pad(s);
 };
 
+const formatMMSS = (totalSeconds) => {
+const s2 = Math.max(0, Math.round(totalSeconds || 0));
+const m2 = Math.floor(s2 / 60);
+const sec2 = s2 % 60;
+return String(m2).padStart(2, '0') + ':' + String(sec2).padStart(2, '0');
+};
+
+const startRestTimer = (seconds) => {
+setRestTimer({ secondsLeft: seconds, total: seconds, running: true, justFinished: false });
+};
+
 const handleStartWorkout = () => {
 setSessionTimer(0);
 setIsTimerRunning(true);
@@ -510,7 +550,8 @@ const handleFinishWorkout = () => {
 setIsTimerRunning(false);
 };
 
-const openLogModal = (dayIdx, exIdx, name) => {
+const openLogModal = (dayIdx, exIdx, name, type) => {
+setRestTimer(null);
 setCurrentSetWeight('');
 setCurrentSetReps('');
 const key = dayIdx + '-' + exIdx;
@@ -519,14 +560,24 @@ const existing = prev[key] || {};
 if (existing.exerciseStartTime) return prev;
 return { ...prev, [key]: { ...existing, exerciseStartTime: new Date().toISOString() } };
 });
-setLogModal({ dayIdx, exIdx, name });
+setLogModal({ dayIdx, exIdx, name, type });
 };
 
 const closeLogModal = () => {
 if (logModal) {
 const key = logModal.dayIdx + '-' + logModal.exIdx;
-setLogs(prev => ({ ...prev, [key]: { ...(prev[key] || {}), exerciseEndTime: new Date().toISOString() } }));
+const endTime = new Date().toISOString();
+setLogs(prev => {
+const existing = prev[key] || {};
+const startTime = existing.exerciseStartTime;
+const seriesCount = (existing.series || []).length;
+let durationSec = null;
+if (startTime) { durationSec = Math.round((new Date(endTime) - new Date(startTime)) / 1000); }
+setExerciseSummary({ name: logModal.name, seriesCount, durationSec });
+return { ...prev, [key]: { ...existing, exerciseEndTime: endTime } };
+});
 }
+setRestTimer(null);
 setLogModal(null);
 };
 
@@ -873,7 +924,7 @@ return (
 </p>
 
 <p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
-<button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name)}>▶️ COMMENCER CET EXERCICE</button>
+<button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type)}>▶️ COMMENCER CET EXERCICE</button>
 </div>
 );
 })}
@@ -1068,6 +1119,8 @@ const key = logModal.dayIdx + '-' + logModal.exIdx;
 const logged = logs[key] || {};
 const sets = logged.series || [];
 const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + logModalFrame + '.jpg') : null;
+const typeNorm = normalizeText(logModal.type || '');
+const isCardioType = /cardio|running|course|velo|cycl|rando|hike|marche/.test(typeNorm);
 return (
 <div className="modal-overlay" onClick={closeLogModal}>
 <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -1082,7 +1135,7 @@ return (
 <div className="modal-media-fallback">🎥<br />Démo visuelle non disponible pour cet exercice</div>
 )}
 </div>
-{sets.length > 0 && (
+{!isCardioType && sets.length > 0 && (
 <div className="sets-recorded-list">
 {sets.map((s, si) => (
 <div key={si} className="set-recorded-row">
@@ -1092,6 +1145,7 @@ return (
 ))}
 </div>
 )}
+{!isCardioType && (
 <div className="set-input-row">
 <label>{'Série ' + (sets.length + 1)}</label>
 <div className="set-input-fields">
@@ -1100,18 +1154,62 @@ return (
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
 {seriesFeedback && <p className="series-feedback">Série enregistrée ✓</p>}
+
+{restTimer ? (
+<div style={{textAlign: 'center', marginTop: '12px'}}>
+{restTimer.running ? (
+<React.Fragment>
+<div className="session-timer-display" style={{color: 'var(--red)'}}>{'⏳ Pause: ' + formatMMSS(restTimer.secondsLeft)}</div>
+<button type="button" className="btn-secondary" style={{marginTop: '8px', width: 'auto', padding: '6px 14px', fontSize: '12px'}} onClick={() => setRestTimer(null)}>Passer la pause</button>
+</React.Fragment>
+) : (
+<div style={{color: 'var(--green)', fontWeight: 700}}>Pause terminée ✓</div>
+)}
 </div>
+) : (
+<div style={{marginTop: '12px'}}>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '6px'}}>Pause ?</p>
+<div style={{display: 'flex', gap: '8px'}}>
+{[30, 60, 90, 120].map(sec => (
+<button key={sec} type="button" className="btn-secondary" style={{width: 'auto', flex: 1, padding: '8px', fontSize: '12px'}} onClick={() => startRestTimer(sec)}>{sec + 's'}</button>
+))}
+</div>
+</div>
+)}
+</div>
+)}
+
 <div className="optional-extra-fields">
-<p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
+{isCardioType ? (
+<React.Fragment>
+<p className="section-title" style={{fontSize: '13px', marginTop: '4px'}}>Détails de la séance</p>
 <input type="number" placeholder="Distance (km)" value={logged.distance || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {distance: e.target.value})} />
 <input type="text" placeholder="Temps (ex: 30:45)" value={logged.time || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {time: e.target.value})} />
 <textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
+</React.Fragment>
+) : (
+<React.Fragment>
+<p className="section-title" style={{fontSize: '13px', marginTop: '14px'}}>Optionnel</p>
+<textarea placeholder="Notes (sensation, difficulté...)" value={logged.notes || ''} onChange={(e) => logExercise(logModal.dayIdx, logModal.exIdx, {notes: e.target.value})} />
+</React.Fragment>
+)}
 </div>
 <button type="button" className="btn-secondary" style={{marginTop: '12px'}} onClick={closeLogModal}>🏁 TERMINER CET EXERCICE</button>
 </div>
 </div>
 );
 })()}
+
+{exerciseSummary && (
+<div className="modal-overlay" onClick={() => setExerciseSummary(null)}>
+<div className="modal-box" onClick={(e) => e.stopPropagation()} style={{textAlign: 'center'}}>
+<h3 style={{marginBottom: '10px'}}>✅ Exercice terminé</h3>
+<p style={{marginBottom: '6px'}}>{exerciseSummary.name}</p>
+<p style={{marginBottom: '6px'}}>{'Séries: ' + exerciseSummary.seriesCount}</p>
+<p>{exerciseSummary.durationSec != null ? ('Durée: ' + formatMMSS(exerciseSummary.durationSec)) : ''}</p>
+</div>
+</div>
+)}
 </div>
 );
 }
