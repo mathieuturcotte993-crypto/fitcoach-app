@@ -2604,9 +2604,11 @@ return (
 <div className="tab-panel">
 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '15px', flexWrap: 'wrap'}}>
 <h2 style={{color: 'var(--text)'}}>Semaine en cours</h2>
+<div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
 <button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🔀 Réinitialiser l'ordre</button>
 <button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>✅ Terminer la semaine</button>
 <button className="btn-secondary danger" onClick={resetCurrentPlan} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🗑️ Réinitialiser le plan</button>
+</div>
 </div>
 {(() => {
 const allDays = currentWeekPlan.days || [];
