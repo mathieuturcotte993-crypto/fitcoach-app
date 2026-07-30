@@ -751,6 +751,31 @@ const haptic = (pattern) => {
 try { if (navigator && typeof navigator.vibrate === 'function') navigator.vibrate(pattern); } catch (e) {}
 };
 
+const stickyTopOffset = () => {
+let off = 10;
+try {
+const bar = document.querySelector('.tab-buttons');
+if (bar) {
+const cs = window.getComputedStyle(bar);
+if (cs.position === 'sticky') off += bar.getBoundingClientRect().height;
+}
+} catch (e) {}
+return off;
+};
+
+const anchorElement = (el) => {
+if (!el || typeof el.getBoundingClientRect !== 'function') return;
+const run = () => {
+try {
+const rect = el.getBoundingClientRect();
+const target = Math.max(0, window.scrollY + rect.top - stickyTopOffset());
+if (Math.abs(target - window.scrollY) < 4) return;
+window.scrollTo({ top: target, behavior: 'smooth' });
+} catch (e) { }
+};
+try { requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(run, 30))); } catch (e) { setTimeout(run, 60); }
+};
+
 useEffect(() => {
 if (!message) return;
 const delay = message.indexOf('Erreur') === 0 ? 7000 : 4500;
@@ -2409,7 +2434,7 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 <p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Trois etapes pour construire ton plan. Tes informations personnelles (cle API, poids, age, taille) se trouvent dans l'onglet 👤 Profil.</p>
 
 <div className={'setup-step' + (openSetupStep === 1 ? ' open' : '')}>
-<button type="button" className="setup-step-head" onClick={() => setOpenSetupStep(openSetupStep === 1 ? 0 : 1)}>
+<button type="button" className="setup-step-head" onClick={(e) => { const el = e.currentTarget; setOpenSetupStep(openSetupStep === 1 ? 0 : 1); anchorElement(el); }}>
 <span className="step-num">1</span>
 <span className="step-titles">
 <span className="step-title">Ton profil d'entraînement</span>
@@ -2465,7 +2490,7 @@ chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgre
 </div>
 
 <div className={'setup-step' + (openSetupStep === 2 ? ' open' : '')}>
-<button type="button" className="setup-step-head" onClick={() => setOpenSetupStep(openSetupStep === 2 ? 0 : 2)}>
+<button type="button" className="setup-step-head" onClick={(e) => { const el = e.currentTarget; setOpenSetupStep(openSetupStep === 2 ? 0 : 2); anchorElement(el); }}>
 <span className="step-num">2</span>
 <span className="step-titles">
 <span className="step-title">Ton équipement</span>
@@ -2518,7 +2543,7 @@ return (
 </div>
 
 <div className={'setup-step' + (openSetupStep === 3 ? ' open' : '')}>
-<button type="button" className="setup-step-head" onClick={() => setOpenSetupStep(openSetupStep === 3 ? 0 : 3)}>
+<button type="button" className="setup-step-head" onClick={(e) => { const el = e.currentTarget; setOpenSetupStep(openSetupStep === 3 ? 0 : 3); anchorElement(el); }}>
 <span className="step-num">3</span>
 <span className="step-titles">
 <span className="step-title">Tes objectifs</span>
@@ -2623,7 +2648,7 @@ return (
 const day = allDays[dayIdx];
 const dayRunning = isDayWorkoutRunning(dayIdx);
 return (
-<button key={dayIdx} type="button" className={'day-tab' + (activeIdx === dayIdx ? ' active' : '')} onClick={() => setSelectedPlanDay(dayIdx)}>
+<button key={dayIdx} type="button" className={'day-tab' + (activeIdx === dayIdx ? ' active' : '')} onClick={(e) => { const el = e.currentTarget.parentElement; setSelectedPlanDay(dayIdx); anchorElement(el); }}>
 <span className="day-tab-title">{typeIcon(day.type) + ' ' + getDayCondensedLabel(day)}</span>
 <span className="day-tab-sub">{day.day + ' • ' + ((day.exercises || []).length) + ' ex.' + (dayRunning ? ' • ⏱️' : '')}</span>
 </button>
@@ -2855,7 +2880,7 @@ if (stats.loggedCount === 0) return null;
 const cardKey = 'current-' + dayIdx;
 const isOpen = !!expandedWorkouts[cardKey];
 return (
-<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={() => toggleWorkout(cardKey)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
+<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={(e) => { const el = e.currentTarget; toggleWorkout(cardKey); anchorElement(el); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
 <div className="workout-card-header">
 <div className="workout-card-header-left">
 <span className="workout-card-icon">{typeIcon(day.type)}</span>
@@ -2968,7 +2993,7 @@ const cardKey = w.week + '-' + dayIdx + '-' + wIdx;
 const stats = computeDayStats(w, dayIdx, day);
 const isOpen = !!expandedWorkouts[cardKey];
 return (
-<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={() => toggleWorkout(cardKey)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
+<div className="workout-card" key={dayIdx} role="button" tabIndex={0} onClick={(e) => { const el = e.currentTarget; toggleWorkout(cardKey); anchorElement(el); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkout(cardKey); } }}>
 <div className="workout-card-header">
 <div className="workout-card-header-left">
 <span className="workout-card-icon">{typeIcon(day.type)}</span>
