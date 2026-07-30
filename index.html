@@ -1830,6 +1830,7 @@ return (
 {logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
+{log.allure ? ('· ' + log.allure + ' min/km ') : ''}
 {log.heartRate ? ('· FC moy ' + log.heartRate + 'bpm ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
 {maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
@@ -1940,6 +1941,7 @@ return (
 {logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
+{log.allure ? ('· ' + log.allure + ' min/km ') : ''}
 {log.heartRate ? ('· FC moy ' + log.heartRate + 'bpm ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
 </React.Fragment>
