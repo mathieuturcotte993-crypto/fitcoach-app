@@ -237,6 +237,16 @@ button:focus-visible, .tab-btn:focus-visible, a:focus-visible, input:focus-visib
 outline: 2px solid var(--orange-light); outline-offset: 2px;
 }
 .calendar-day { min-height: 44px; }
+.day-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
+.day-tab { flex: 0 0 auto; width: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); box-shadow: none; text-align: left; }
+.day-tab:hover:not(:disabled) { transform: none; border-color: var(--orange-dark); box-shadow: none; }
+.day-tab.active { background: rgba(255,122,26,0.10); border-color: var(--orange); color: var(--orange-light); box-shadow: 0 0 14px rgba(255,122,26,0.15); }
+.day-tab-title { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+.day-tab-sub { font-size: 10.5px; opacity: 0.85; white-space: nowrap; }
+.extra-set-box { background: rgba(255,122,26,0.08); border: 1px solid var(--orange-dark); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.extra-set-box p { font-size: 12.5px; color: var(--orange-light); margin-bottom: 10px; line-height: 1.4; }
+.extra-set-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.extra-set-actions button { flex: 1 1 140px; width: auto; padding: 10px; font-size: 12px; }
 @media (max-width: 480px) {
 body { padding: 6px; }
 .modal-overlay { padding: 5vw; }
@@ -463,8 +473,10 @@ const [loading, setLoading] = useState(false);
 const [message, setMessage] = useState('');
 const [exerciseModal, setExerciseModal] = useState(null);
 const [modalFrame, setModalFrame] = useState(0);
-const [sessionTimer, setSessionTimer] = useState(0);
-const [isTimerRunning, setIsTimerRunning] = useState(false);
+const [dayWorkoutTimes, setDayWorkoutTimes] = useState({});
+const [selectedPlanDay, setSelectedPlanDay] = useState(0);
+const [allowExtraSet, setAllowExtraSet] = useState(false);
+const [nowTick, setNowTick] = useState(Date.now());
 const [logModal, setLogModal] = useState(null);
 const [logModalFrame, setLogModalFrame] = useState(0);
 const [currentSetWeight, setCurrentSetWeight] = useState('');
@@ -516,7 +528,7 @@ useEffect(() => {
           const legacyLogs = JSON.parse(localStorage.getItem('logs') || '{}');
           const legacySessionCalories = JSON.parse(localStorage.getItem('sessionCalories') || '{}');
           if (legacyPlan) {
-            await savePlan(legacyWeekNumber, { weekNumber: legacyWeekNumber, currentWeekPlan: legacyPlan, logs: legacyLogs, sessionTimer: 0, exerciseOrder: {}, sessionCalories: legacySessionCalories });
+            await savePlan(legacyWeekNumber, { weekNumber: legacyWeekNumber, currentWeekPlan: legacyPlan, logs: legacyLogs, dayWorkoutTimes: {}, exerciseOrder: {}, sessionCalories: legacySessionCalories });
           }
           const legacyHistory = JSON.parse(localStorage.getItem('weekHistory') || '[]');
           for (let i = 0; i < legacyHistory.length; i++) { await saveToHistory(legacyHistory[i]); }
@@ -550,6 +562,7 @@ useEffect(() => {
           if (planData.logs) setLogs(planData.logs);
           if (planData.exerciseOrder) setExerciseOrder(planData.exerciseOrder);
           if (planData.sessionCalories) setSessionCalories(planData.sessionCalories);
+if (planData.dayWorkoutTimes) setDayWorkoutTimes(planData.dayWorkoutTimes);
         }
       }
 
@@ -580,9 +593,9 @@ useEffect(() => {
 
 useEffect(() => {
   if (!dataReady) return;
-  savePlan(weekNumber, { weekNumber: weekNumber, currentWeekPlan: currentWeekPlan, logs: logs, sessionTimer: sessionTimer, exerciseOrder: exerciseOrder, sessionCalories: sessionCalories })
+  savePlan(weekNumber, { weekNumber: weekNumber, currentWeekPlan: currentWeekPlan, logs: logs, dayWorkoutTimes: dayWorkoutTimes, exerciseOrder: exerciseOrder, sessionCalories: sessionCalories })
     .catch((e) => setMessage('Erreur sauvegarde plan (IndexedDB): ' + e.message));
-}, [dataReady, weekNumber, currentWeekPlan, logs, sessionTimer, exerciseOrder, sessionCalories]);
+}, [dataReady, weekNumber, currentWeekPlan, logs, dayWorkoutTimes, exerciseOrder, sessionCalories]);
 
 useEffect(() => {
   if (!dataReady) return;
@@ -608,10 +621,11 @@ const interval = setInterval(() => setModalFrame(f => (f === 0 ? 1 : 0)), 900);
 return () => clearInterval(interval);
 }, [exerciseModal]);
 useEffect(() => {
-if (!isTimerRunning) return;
-const interval = setInterval(() => setSessionTimer(t => t + 1), 1000);
+const anyRunning = currentWeekPlan && (currentWeekPlan.days || []).some((d, i) => dayWorkoutTimes[i] && dayWorkoutTimes[i].start && !dayWorkoutTimes[i].end);
+if (!anyRunning) return;
+const interval = setInterval(() => setNowTick(Date.now()), 1000);
 return () => clearInterval(interval);
-}, [isTimerRunning]);
+}, [dayWorkoutTimes, currentWeekPlan]);
 useEffect(() => {
 if (!logModal) return;
 setLogModalFrame(0);
@@ -659,7 +673,7 @@ return userEquipmentList.map(id => (EQUIPMENT_CATALOG.find(e => e.id === id) || 
 
 const callClaudeAPI = async (messages, system) => {
 if (!apiKey) {
-setMessage("Erreur: Veuillez configurer votre clé API Claude d'abord");
+setMessage("Erreur: Configure ta clé API Claude dans l'onglet Paramètres");
 return null;
 }
 try {
@@ -776,7 +790,9 @@ return total;
 const estimateCaloriesForDay = async (dayIdx, day, logsObj) => {
 const loggedItems = getDayLoggedExercises(day, dayIdx, logsObj);
 if (!loggedItems.length) return null;
-const durationSec = computeDayDurationSeconds(day, dayIdx, logsObj) || sessionTimer;
+const dwtForCal = dayWorkoutTimes[dayIdx] || {};
+const fallbackDurationSec = dwtForCal.start ? Math.max(0, ((dwtForCal.end ? new Date(dwtForCal.end) : new Date()) - new Date(dwtForCal.start)) / 1000) : 0;
+const durationSec = computeDayDurationSeconds(day, dayIdx, logsObj) || fallbackDurationSec;
 const durationMin = Math.max(1, Math.round(durationSec / 60));
 const details = loggedItems.map((item) => {
 const ex = item.ex; const log = item.log;
@@ -1012,46 +1028,78 @@ const resetExerciseOrder = () => {
 setExerciseOrder({});
 };
 
-const handleStartWorkout = () => {
-setSessionTimer(0);
-setIsTimerRunning(true);
+const detectMuscuSubtype = (day) => {
+const names = (day.exercises || []).map(e => normalizeText(e.name)).join(' | ');
+const count = (keys) => keys.reduce((acc, k) => acc + (names.includes(k) ? 1 : 0), 0);
+const push = count(['developpe','pompe','push','dips','triceps','epaule','militaire','ecarte','pec']);
+const pull = count(['rowing','traction','pull','tirage','curl','biceps','row','dorsaux']);
+const legs = count(['squat','fente','lunge','presse','leg press','mollet','calf','souleve de terre','deadlift','hip thrust','jambe','ischio','fessier']);
+if (legs > 0 && legs >= push && legs >= pull) return 'Jambes';
+if (push > 0 && push >= pull) return 'Push';
+if (pull > 0) return 'Pull';
+return '';
 };
 
-const handleFinishWorkout = async () => {
-setIsTimerRunning(false);
-if (!currentWeekPlan) return;
-setCalculatingCalories(true);
-const results = {};
-for (let dayIdx = 0; dayIdx < currentWeekPlan.days.length; dayIdx++) {
-const day = currentWeekPlan.days[dayIdx];
-const loggedItems = getDayLoggedExercises(day, dayIdx, logs);
-if (!loggedItems.length) continue;
-const cal = await estimateCaloriesForDay(dayIdx, day, logs);
-if (cal != null) results[dayIdx] = cal;
+const getDayCondensedLabel = (day) => {
+if (!day) return '';
+const type = (day.type || 'Seance').trim();
+const t = normalizeText(type);
+if (t.includes('muscu')) {
+const sub = detectMuscuSubtype(day);
+return sub ? (type + ' ' + sub) : type;
 }
-if (Object.keys(results).length) {
-setSessionCalories(prev => ({ ...prev, ...results }));
-const summaryDays = currentWeekPlan.days.map((d, i) => {
-const cal = results[i] != null ? results[i] : (sessionCalories[i] != null ? sessionCalories[i] : null);
-return { name: d.day + ' - ' + d.type, calories: cal };
-}).filter(x => x.calories != null);
-if (summaryDays.length) setSessionSummary({ days: summaryDays });
-setMessage('✅ Calories estimées pour cette séance');
+if (t.includes('run') || t.includes('course') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) {
+const first = (day.exercises && day.exercises[0]) ? day.exercises[0] : null;
+const w = first && first.weight ? String(first.weight).replace('Distance:', '').trim() : '';
+return w ? (type + ' ' + w) : type;
+}
+return type;
+};
+
+const getDayElapsedSeconds = (dayIdx) => {
+const dwt = dayWorkoutTimes[dayIdx] || {};
+if (!dwt.start) return 0;
+const end = dwt.end ? new Date(dwt.end) : new Date();
+return Math.max(0, Math.round((end - new Date(dwt.start)) / 1000));
+};
+
+const isDayWorkoutRunning = (dayIdx) => {
+const dwt = dayWorkoutTimes[dayIdx] || {};
+return !!dwt.start && !dwt.end;
+};
+
+const finishDayWorkout = async (dayIdx) => {
+if (!currentWeekPlan) return;
+const day = currentWeekPlan.days[dayIdx];
+if (!day) return;
+const endIso = new Date().toISOString();
+setDayWorkoutTimes(prev => ({ ...prev, [dayIdx]: { ...(prev[dayIdx] || {}), end: endIso } }));
+const loggedItems = getDayLoggedExercises(day, dayIdx, logs);
+if (!loggedItems.length) { setMessage('Entrainement termine (aucune donnee enregistree pour cette seance)'); return; }
+setCalculatingCalories(true);
+const cal = await estimateCaloriesForDay(dayIdx, day, logs);
+if (cal != null) {
+setSessionCalories(prev => ({ ...prev, [dayIdx]: cal }));
+setSessionSummary({ days: [{ name: day.day + ' - ' + day.type, calories: cal }] });
+setMessage('✅ Entrainement termine — calories estimees');
+} else {
+setMessage('✅ Entrainement termine');
 }
 setCalculatingCalories(false);
 };
 
-const openLogModal = (dayIdx, exIdx, name, type) => {
+const openLogModal = (dayIdx, exIdx, name, type, sets) => {
 setRestTimer(null);
 setCurrentSetWeight('');
 setCurrentSetReps('');
+setAllowExtraSet(false);
 const key = dayIdx + '-' + exIdx;
 setLogs(prev => {
 const existing = prev[key] || {};
 if (existing.exerciseStartTime) return prev;
 return { ...prev, [key]: { ...existing, exerciseStartTime: new Date().toISOString() } };
 });
-setLogModal({ dayIdx: dayIdx, exIdx: exIdx, name: name, type: type });
+setLogModal({ dayIdx: dayIdx, exIdx: exIdx, name: name, type: type, sets: sets });
 };
 
 const closeLogModal = () => {
@@ -1069,13 +1117,41 @@ return { ...prev, [key]: { ...existing, exerciseEndTime: endTime } };
 });
 }
 setRestTimer(null);
+setAllowExtraSet(false);
 setLogModal(null);
+};
+
+const goToNextExercise = (dayIdx, exIdx) => {
+const day = currentWeekPlan && currentWeekPlan.days ? currentWeekPlan.days[dayIdx] : null;
+closeLogModal();
+if (!day) return;
+const order = exerciseOrder[dayIdx] || day.exercises.map((_, i) => i);
+const pos = order.indexOf(exIdx);
+if (pos > -1 && pos < order.length - 1) {
+const nextExIdx = order[pos + 1];
+const nextEx = day.exercises[nextExIdx];
+if (nextEx) {
+setTimeout(() => { setExerciseSummary(null); openLogModal(dayIdx, nextExIdx, nextEx.name, day.type, nextEx.sets); }, 400);
+return;
+}
+}
+setMessage("✅ Dernier exercice de la seance termine — tu peux terminer ton entrainement");
 };
 
 const saveSet = () => {
 if (!logModal) return;
 const key = logModal.dayIdx + '-' + logModal.exIdx;
 const timestamp = new Date().toISOString();
+const dayHasAnySet = Object.keys(logs).some((k) => {
+const sep = k.indexOf('-');
+if (sep === -1) return false;
+if (k.slice(0, sep) !== String(logModal.dayIdx)) return false;
+const l = logs[k];
+return !!(l && l.series && l.series.length > 0);
+});
+if (!dayHasAnySet) {
+setDayWorkoutTimes(prev => ({ ...prev, [logModal.dayIdx]: { start: timestamp, end: null } }));
+}
 setLogs(prev => {
 const existing = prev[key] || {};
 const series = existing.series || [];
@@ -1083,13 +1159,14 @@ return { ...prev, [key]: { ...existing, series: [...series, { weight: currentSet
 });
 setCurrentSetWeight('');
 setCurrentSetReps('');
+setAllowExtraSet(false);
 setSeriesFeedback(true);
 setTimeout(() => setSeriesFeedback(false), 1500);
 };
 
 const generateWeekPlan = async () => {
 if (!apiKey) {
-setMessage('Erreur: Clé API manquante');
+setMessage("Erreur: Clé API manquante — ajoute-la dans l'onglet Paramètres");
 return;
 }
 if (!userEquipmentList.length) {
@@ -1163,6 +1240,8 @@ const plan = JSON.parse(jsonMatch[0]);
 setCurrentWeekPlan(plan);
 setWeekNumber(plan.week || weekNumber);
 setExerciseOrder({});
+setDayWorkoutTimes({});
+setSelectedPlanDay(0);
 setMessage('✅ Plan généré avec succès!');
 setCurrentTab('plan');
 }
@@ -1223,6 +1302,8 @@ setCurrentWeekPlan(pendingPlanUpdate.plan);
 setWeekNumber(pendingPlanUpdate.plan.week || weekNumber);
 setLogs({});
 setExerciseOrder({});
+setDayWorkoutTimes({});
+setSelectedPlanDay(0);
 setChatMessages(prev => [...prev, { role: 'assistant', content: "✅ C'est fait, ton plan d'entraînement a été mis à jour !" }]);
 setPendingPlanUpdate(null);
 setMessage('✅ Plan mis à jour par le coach IA');
@@ -1254,6 +1335,8 @@ setWeekNumber(prev => prev + 1);
 setCurrentWeekPlan(null);
 setLogs({});
 setExerciseOrder({});
+setDayWorkoutTimes({});
+setSelectedPlanDay(0);
 setSessionCalories({});
 setMessage('');
 setCurrentTab('setup');
@@ -1312,8 +1395,9 @@ const handleDeleteAllData = () => {
     setExerciseProgression([]);
     setSessionCalories({});
     setExerciseOrder({});
-    setSessionTimer(0);
-    setIsTimerRunning(false);
+    setDayWorkoutTimes({});
+    setSelectedPlanDay(0);
+    setAllowExtraSet(false);
     localStorage.removeItem('fitcoach_idb_migrated');
     setCurrentTab('setup');
     setMessage('Toutes tes donnees ont ete supprimees');
@@ -1344,6 +1428,7 @@ return (
 </div>
 <div className="content">
 <div className="tab-buttons">
+<button className={'tab-btn ' + (currentTab === 'settings' ? 'active' : '')} onClick={() => setCurrentTab('settings')}>🔧 Paramètres</button>
 <button className={'tab-btn ' + (currentTab === 'setup' ? 'active' : '')} onClick={() => setCurrentTab('setup')}>⚙️ Config</button>
 <button className={'tab-btn ' + (currentTab === 'plan' ? 'active' : '')} onClick={() => setCurrentTab('plan')}>📅 Plan</button>
 <button className={'tab-btn ' + (currentTab === 'chat' ? 'active' : '')} onClick={() => setCurrentTab('chat')}>💬 Coach IA</button>
@@ -1355,46 +1440,14 @@ return (
 </div>
 )}
 
-{currentTab === 'setup' && (
+{currentTab === 'settings' && (
 <div className="tab-panel">
-{weekHistory.length > 0 && (
-<div className="dashboard-block">
-<h2 className="section-title">📊 Ton résumé</h2>
-<div className="stats">
-<div className="stat-card">
-<div className="value">{totalSessionsCompleted}</div>
-<div className="label">Séances complétées</div>
-</div>
-<div className="stat-card">
-<div className="value">{weekHistory.length}</div>
-<div className="label">Semaines terminées</div>
-</div>
-</div>
-<div className="type-stats-grid">
-{Object.entries(globalStatsByType).map(([type, s]) => (
-<div className="type-stat-card" key={type}>
-<div className="type-stat-icon">{typeIcon(type)}</div>
-<div className="type-stat-name">{type}</div>
-<div className="type-stat-value">{primaryMetricText(type, s)}</div>
-<div className="type-stat-sub">{s.sessions + (s.sessions > 1 ? ' séances' : ' séance')}</div>
-</div>
-))}
-</div>
-</div>
-)}
-<h2 style={{marginBottom: '15px', color: 'var(--text)'}}>Configuration Initiale</h2>
+<h2 style={{marginBottom: '10px', color: 'var(--text)'}}>Paramètres</h2>
+<p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Ta clé API et tes données personnelles sont enregistrées ici, dans ton appareil (IndexedDB).</p>
 <div className="form-group">
 <label>🔑 Clé API Claude</label>
 <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-ant-..." />
 <small style={{color: 'var(--text-dim)', marginTop: '5px', display: 'block'}}>👉 Obtenez votre clé sur console.anthropic.com</small>
-</div>
-<div className="form-group">
-<label>📊 Votre Niveau</label>
-<select value={userLevel} onChange={(e) => setUserLevel(e.target.value)}>
-<option value="beginner">Débutant</option>
-<option value="intermediate">Intermédiaire</option>
-<option value="advanced">Avancé</option>
-</select>
 </div>
 <div className="form-group">
 <label>⚖️ Poids (kg)</label>
@@ -1408,6 +1461,36 @@ return (
 <div className="form-group">
 <label>📏 Taille (cm)</label>
 <input type="number" value={userHeight} onChange={(e) => setUserHeight(e.target.value)} placeholder="Ex: 175" />
+</div>
+<button type="button" onClick={() => {
+saveConfig({
+apiKey: apiKey, userLevel: userLevel, userEquipmentList: userEquipmentList, userGoals: userGoals,
+userWeight: userWeight, userAge: userAge, userHeight: userHeight, weekNumber: weekNumber,
+chatMessages: chatMessages, pendingPlanUpdate: pendingPlanUpdate, exerciseProgression: exerciseProgression
+}).then(() => setMessage('✅ Paramètres sauvegardés')).catch((e) => setMessage('Erreur sauvegarde: ' + e.message));
+}}>💾 Sauvegarder mes paramètres</button>
+<div className="dashboard-block" style={{marginTop: '22px', borderBottom: 'none', paddingBottom: 0}}>
+<h2 className="section-title">Gérer mes données</h2>
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes données (paramètres, configuration, plans, historique) sont stockées dans IndexedDB : elles survivent à la suppression de l'historique de navigation. Utilise ce bouton pour tout effacer définitivement de l'application.</p>
+<button type="button" className="btn-danger" onClick={handleDeleteAllData}>Supprimer TOUTES mes données de l'app</button>
+</div>
+</div>
+)}
+
+{currentTab === 'setup' && (
+<div className="tab-panel">
+<h2 style={{marginBottom: '10px', color: 'var(--text)'}}>Configuration de mon training</h2>
+<p style={{marginBottom: '15px', fontSize: '13px', color: 'var(--text-dim)'}}>Cette page sert uniquement à l'élaboration de ton entraînement. Tes informations personnelles se trouvent dans l'onglet 🔧 Paramètres.</p>
+{!apiKey && (
+<div className="message info">Ajoute d'abord ta clé API Claude dans l'onglet 🔧 Paramètres pour pouvoir générer un plan.</div>
+)}
+<div className="form-group">
+<label>📊 Votre Niveau</label>
+<select value={userLevel} onChange={(e) => setUserLevel(e.target.value)}>
+<option value="beginner">Débutant</option>
+<option value="intermediate">Intermédiaire</option>
+<option value="advanced">Avancé</option>
+</select>
 </div>
 <div className="form-group">
 <label>🏋️ Équipement Disponible (sélection multiple)</label>
@@ -1435,40 +1518,58 @@ return (
 <button onClick={generateWeekPlan} disabled={loading}>
 {loading ? (<><span className="spinner"></span>Génération...</>) : ('🚀 Générer Plan Semaine ' + weekNumber)}
 </button>
-<div className="dashboard-block">
-<h2 className="section-title">Gerer mes donnees</h2>
-<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '10px'}}>Tes donnees (configuration, plans, historique) sont stockees dans IndexedDB : elles survivent a la suppression de l'historique de navigation. Utilise ce bouton pour tout effacer definitivement de l'application.</p>
-<button type="button" className="btn-danger" onClick={handleDeleteAllData}>Supprimer TOUTES mes donnees de l'app</button>
-</div>
 </div>
 )}
 
 {currentTab === 'plan' && currentWeekPlan && (
 <div className="tab-panel">
-<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '15px', flexWrap: 'wrap'}}>
 <h2 style={{color: 'var(--text)'}}>Semaine {currentWeekPlan.week}</h2>
-<button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 16px'}}>🔀 Réinitialiser l'ordre</button>
-<button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 16px'}}>✅ Terminer la semaine</button>
+<button className="btn-secondary" onClick={resetExerciseOrder} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>🔀 Réinitialiser l'ordre</button>
+<button className="btn-secondary" onClick={finishWeek} style={{width: 'auto', padding: '8px 12px', fontSize: '12px'}}>✅ Terminer la semaine</button>
 </div>
+<div className="day-tabs">
+{(currentWeekPlan.days || []).map((day, dayIdx) => {
+const dayDone = !!(dayWorkoutTimes[dayIdx] && dayWorkoutTimes[dayIdx].end);
+const dayRunning = isDayWorkoutRunning(dayIdx);
+return (
+<button key={dayIdx} type="button" className={'day-tab' + (selectedPlanDay === dayIdx ? ' active' : '')} onClick={() => setSelectedPlanDay(dayIdx)}>
+<span className="day-tab-title">{typeIcon(day.type) + ' ' + getDayCondensedLabel(day)}</span>
+<span className="day-tab-sub">{day.day + ' • ' + ((day.exercises || []).length) + ' ex.' + (dayDone ? ' • ✅' : (dayRunning ? ' • ⏱️' : ''))}</span>
+</button>
+);
+})}
+</div>
+{(() => {
+const dayIdx = selectedPlanDay;
+const day = (currentWeekPlan.days || [])[dayIdx];
+if (!day) return null;
+const order = exerciseOrder[dayIdx] || day.exercises.map((_, i) => i);
+const dwt = dayWorkoutTimes[dayIdx] || {};
+const elapsed = getDayElapsedSeconds(dayIdx);
+return (
+<div className="workout-day">
+<h3>{day.day} — {getDayCondensedLabel(day)}</h3>
+{!dwt.start && (
+<p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px'}}>⏱️ Le chrono de la séance démarre automatiquement dès que tu enregistres ta première série, et s'arrête quand tu termines l'entraînement.</p>
+)}
+{dwt.start && (
 <div className="session-timer-bar">
-<div className="session-timer-display">⏱️ {formatTimer(sessionTimer)}</div>
-{isTimerRunning ? (
-<button className="btn-secondary" onClick={handleFinishWorkout} disabled={calculatingCalories} style={{width: 'auto', padding: '8px 16px'}}>{calculatingCalories ? '⏳ Calcul calories...' : "🏁 TERMINER L'ENTRAÎNEMENT"}</button>
+<div className="session-timer-display">⏱️ {formatTimer(elapsed)}</div>
+{!dwt.end ? (
+<button className="btn-secondary" onClick={() => finishDayWorkout(dayIdx)} disabled={calculatingCalories} style={{width: 'auto', padding: '8px 16px'}}>{calculatingCalories ? '⏳ Calcul calories...' : "🏁 TERMINER L'ENTRAÎNEMENT"}</button>
 ) : (
-<button onClick={handleStartWorkout} style={{width: 'auto', padding: '8px 16px'}}>▶️ Commencer l'entraînement</button>
+<span style={{fontSize: '12.5px', color: 'var(--green)', fontWeight: 700}}>{'✅ Terminé' + (sessionCalories[dayIdx] != null ? (' · 🔥 ' + sessionCalories[dayIdx] + ' kcal') : '')}</span>
 )}
 </div>
-{currentWeekPlan.days.map((day, dayIdx) => {
-const order = exerciseOrder[dayIdx] || day.exercises.map((_, i) => i);
-return (
-<div key={dayIdx} className="workout-day">
-<h3>{day.day} - {day.type}</h3>
+)}
 {order.map((exIdx, pos) => {
 const ex = day.exercises[exIdx];
 const logKey = dayIdx + '-' + exIdx;
 const logged = logs[logKey] || {};
 const info = getExerciseInfo(ex.name);
 const seriesCount = (logged.series || []).length;
+const targetSets = parseInt(ex.sets, 10) || 0;
 const isDragging = dragInfo && dragInfo.dayIdx === dayIdx && dragInfo.pos === pos;
 const isDragOver = dragOverInfo && dragOverInfo.dayIdx === dayIdx && dragOverInfo.pos === pos;
 const isSettled = settledInfo && settledInfo.dayIdx === dayIdx && settledInfo.exIdx === exIdx;
@@ -1488,14 +1589,14 @@ return (
 <p style={{marginBottom: '10px', fontSize: '12px', color: 'var(--text-dim)'}}>
 {ex.sets} x {ex.reps} {ex.weight ? ('@ ' + ex.weight) : ''}
 </p>
-<p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
-<button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type)}>▶️ COMMENCER CET EXERCICE</button>
+<p className="sets-count-line">{seriesCount > 0 ? ('✅ Séries enregistrées: ' + seriesCount + '/' + ex.sets + (targetSets > 0 && seriesCount > targetSets ? ' (+' + (seriesCount - targetSets) + ' supplémentaire' + (seriesCount - targetSets > 1 ? 's' : '') + ')' : '')) : ((logged.distance || logged.time || logged.notes) ? '✅ Données enregistrées' : '')}</p>
+<button type="button" onClick={() => openLogModal(dayIdx, exIdx, ex.name, day.type, ex.sets)}>{seriesCount > 0 ? '▶️ CONTINUER CET EXERCICE' : '▶️ COMMENCER CET EXERCICE'}</button>
 </div>
 );
 })}
 </div>
 );
-})}
+})()}
 </div>
 )}
 {currentTab === 'plan' && !currentWeekPlan && (
@@ -1542,6 +1643,31 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 {currentTab === 'history' && (
 <div className="tab-panel">
 <h2 style={{marginBottom: '15px', color: 'var(--text)'}}>📈 Historique &amp; Progression</h2>
+{weekHistory.length > 0 && (
+<div className="dashboard-block">
+<h3 className="section-title">📊 Ton résumé</h3>
+<div className="stats">
+<div className="stat-card">
+<div className="value">{totalSessionsCompleted}</div>
+<div className="label">Séances complétées</div>
+</div>
+<div className="stat-card">
+<div className="value">{weekHistory.length}</div>
+<div className="label">Semaines terminées</div>
+</div>
+</div>
+<div className="type-stats-grid">
+{Object.entries(globalStatsByType).map(([type, s]) => (
+<div className="type-stat-card" key={type}>
+<div className="type-stat-icon">{typeIcon(type)}</div>
+<div className="type-stat-name">{type}</div>
+<div className="type-stat-value">{primaryMetricText(type, s)}</div>
+<div className="type-stat-sub">{s.sessions + (s.sessions > 1 ? ' séances' : ' séance')}</div>
+</div>
+))}
+</div>
+</div>
+)}
 {(() => {
   const calendarEntries = buildCalendarEntries();
   const grid = buildCalendarGrid(calendarYear, calendarMonth);
@@ -1822,6 +1948,8 @@ const info = getExerciseInfo(logModal.name);
 const key = logModal.dayIdx + '-' + logModal.exIdx;
 const logged = logs[key] || {};
 const sets = logged.series || [];
+const targetSets = parseInt(logModal.sets, 10) || 0;
+const setsExceeded = targetSets > 0 && sets.length >= targetSets && !allowExtraSet;
 const imgSrc = info && info.id ? (EXERCISE_IMAGE_BASE + info.id + '/' + logModalFrame + '.jpg') : null;
 const typeNorm = normalizeText(logModal.type || '');
 const isMixedType = /crossfit|wod|mixte/.test(typeNorm);
@@ -1863,9 +1991,18 @@ return (
 ))}
 </div>
 )}
-{showStrengthFields && (
+{showStrengthFields && setsExceeded && (
+<div className="extra-set-box">
+<p>{'✅ Tu as complété les ' + targetSets + ' séries prévues par le programme (' + sets.length + ' enregistrée' + (sets.length > 1 ? 's' : '') + '). Tu peux passer à l\'autre exercice ou ajouter un set supplémentaire.'}</p>
+<div className="extra-set-actions">
+<button type="button" onClick={() => goToNextExercise(logModal.dayIdx, logModal.exIdx)}>⏭️ Passer à l'autre exercice</button>
+<button type="button" className="btn-secondary" onClick={() => setAllowExtraSet(true)}>➕ Ajouter un set supplémentaire</button>
+</div>
+</div>
+)}
+{showStrengthFields && !setsExceeded && (
 <div className="set-input-row">
-<label>{'Série ' + (sets.length + 1)}</label>
+<label>{'Série ' + (sets.length + 1) + (targetSets > 0 ? ((sets.length + 1) > targetSets ? ' (supplémentaire)' : ' / ' + targetSets) : '')}</label>
 <div className="set-input-fields">
 <input type="number" aria-label="Poids en kilogrammes" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
 <input type="number" aria-label="Nombre de répétitions" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
