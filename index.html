@@ -1868,7 +1868,7 @@ setPrepChips([]);
 haptic([14, 50, 18]);
 setMessage('✅ Plan généré avec succès!');
 setCurrentTab('plan');
-}
+} else { setMessage('Erreur: Reponse recue mais aucun plan JSON valide trouve. Reessayez.'); }
 } catch (e) {
 setMessage('Erreur: Impossible de parser le plan. Réessayez.');
 }
