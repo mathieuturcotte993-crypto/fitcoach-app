@@ -349,6 +349,8 @@ body { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
 .btn-secondary.danger:hover:not(:disabled) { color: #fff; background: rgba(255,92,92,0.16); border-color: var(--red); box-shadow: none; }
 .btn-remove-exercise { width: auto; margin-top: 8px; background: transparent; color: var(--text-dim); border: 1px solid var(--border); box-shadow: none; font-size: 11.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px; }
 .btn-remove-exercise:hover:not(:disabled) { color: var(--red); border-color: var(--red); background: rgba(255,92,92,0.08); transform: none; box-shadow: none; }
+.workout-day-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.day-select-inline { width: auto; display: inline-block; padding: 4px 8px; font-size: 14px; font-weight: 700; background: var(--surface-2); color: var(--orange-light); border: 1px solid var(--orange-dark); border-radius: 6px; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
 </style>
 </head>
@@ -416,6 +418,14 @@ const WEEKDAY_LABELS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const EXERCISE_IMAGE_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 
 const EXERCISE_LIBRARY = [
+{ keys: ['couche haltere','developpe couche haltere','developpe plat haltere','dumbbell bench'], id: 'Dumbbell_Bench_Press', desc: "Allongé sur le banc, un haltère dans chaque main au niveau de la poitrine, pousse les haltères vers le haut jusqu'à extension des bras, puis redescends de façon contrôlée en gardant les coudes légèrement rentrés." },
+{ keys: ['incline haltere','developpe incline haltere'], id: 'Incline_Dumbbell_Press', desc: "Sur un banc incliné, pousse un haltère de chaque main depuis la poitrine haute jusqu'à extension complète des bras, puis redescends lentement en contrôlant la charge." },
+{ keys: ['militaire haltere','developpe militaire haltere','developpe epaule haltere','presse epaule haltere','arnold press'], id: 'Seated_Dumbbell_Press', desc: "Assis, un haltère à hauteur de chaque épaule, pousse les haltères vers le haut jusqu'à extension complète des bras au-dessus de la tête, puis redescends avec contrôle." },
+{ keys: ['rowing haltere un bras','rowing haltere unilateral','tirage haltere un bras'], id: 'One-Arm_Dumbbell_Row', desc: "Un genou et une main en appui sur le banc, tire l'haltère vers la hanche en ramenant le coude vers l'arrière, puis redescends lentement sans tourner le buste." },
+{ keys: ['rowing haltere','rowing 2 halteres','rowing deux halteres'], id: 'Bent_Over_Two-Dumbbell_Row', desc: "Buste penché vers l'avant, dos droit, tire les deux haltères vers l'abdomen en ramenant les coudes vers l'arrière, puis redescends lentement." },
+{ keys: ['fente haltere','lunge haltere'], id: 'Dumbbell_Lunges', desc: "Un haltère dans chaque main, fais un grand pas vers l'avant et descends jusqu'à ce que les deux genoux forment un angle de 90°, puis pousse pour revenir ou avancer." },
+{ keys: ['squat gobelet','goblet squat'], id: 'Goblet_Squat', desc: "Tiens un haltère verticalement contre la poitrine, pieds largeur d'épaules, descends en squat complet en gardant le buste droit, puis remonte en poussant dans les talons." },
+{ keys: ['squat haltere'], id: 'Dumbbell_Squat', desc: "Un haltère dans chaque main le long du corps, descends en squat en poussant les hanches vers l'arrière, puis remonte en poussant dans les talons." },
 { keys: ['developpe couche','bench press','couche barre','developpe plat'], id: 'Barbell_Bench_Press_-_Medium_Grip', desc: "Allongé sur le banc, saisis la barre en prise pronation un peu plus large que les épaules. Descends-la de façon contrôlée jusqu'à effleurer la poitrine, puis pousse vers le haut en expirant, omoplates serrées et pieds ancrés au sol." },
 { keys: ['developpe incline'], id: 'Barbell_Incline_Bench_Press_-_Medium_Grip', desc: "Sur un banc incliné, pousse la barre depuis la poitrine haute jusqu'à extension complète des bras, en gardant les coudes légèrement rentrés pour cibler le haut des pectoraux." },
 { keys: ['squat'], id: 'Barbell_Full_Squat', desc: "Barre sur le haut du dos, pieds largeur d'épaules. Descends en poussant les hanches vers l'arrière, genoux alignés avec les orteils, jusqu'à ce que les cuisses soient parallèles au sol, puis remonte en poussant dans les talons." },
@@ -443,7 +453,8 @@ const EXERCISE_LIBRARY = [
 { keys: ['epaule-jete','epaule jete','clean and jerk','clean'], id: 'Clean_and_Jerk', desc: "Mouvement olympique en deux temps: tire la barre du sol jusqu'aux épaules en position de squat (épaulé), puis pousse la barre au-dessus de la tête en fendant légèrement les jambes (jeté)." },
 { keys: ['arrache','snatch'], id: 'Hang_Snatch', desc: "Depuis une position suspendue, tire la barre en une seule extension explosive des hanches et des jambes pour l'amener directement au-dessus de la tête, réceptionnée en squat." },
 { keys: ['corde a sauter','jump rope','double under'], id: null, desc: "Fais tourner la corde avec les poignets et saute juste assez haut pour la laisser passer sous tes pieds. Reste sur la pointe des pieds avec un rythme régulier et léger." },
-{ keys: ['rameur','rowing machine','rowing (machine)','ergometre'], id: 'Rowing_Stationary', desc: "Pousse avec les jambes, puis penche légèrement le buste vers l'arrière et enfin tire la poignée vers le bas des côtes. Reviens dans l'ordre inverse: bras, buste, jambes." },
+{ keys: ['rameur','ergometre'], id: 'Rowing_Stationary', desc: "Pousse avec les jambes, puis penche légèrement le buste vers l'arrière et enfin tire la poignée vers le bas des côtes. Reviens dans l'ordre inverse: bras, buste, jambes." },
+{ keys: ['rowing machine','rowing (machine)','rowing guidee','row machine'], id: 'Seated_Cable_Rows', desc: "Assis sur la machine guidée, dos droit et gainé, tire la poignée vers l'abdomen en ramenant les omoplates vers l'arrière sans à-coups, puis reviens lentement en contrôlant la charge." },
 { keys: ['sit-up','sit up'], id: '3_4_Sit-Up', desc: "Allongé sur le dos, genoux fléchis, mains derrière la tête. Enroule le buste vers les genoux en contractant les abdominaux, puis redescends sans reposer complètement la tête au sol." },
 { keys: ['crunch'], id: 'Crunches', desc: "Allongé, genoux fléchis, décolle uniquement le haut du dos du sol en contractant les abdominaux, sans tirer sur la nuque, puis redescends lentement." },
 { keys: ['russian twist','rotation russe'], id: 'Russian_Twist', desc: "Assis, buste légèrement incliné vers l'arrière, pieds levés ou au sol. Fais pivoter le buste d'un côté à l'autre en touchant le sol de chaque côté." },
@@ -1200,7 +1211,7 @@ const durationMin = Math.max(1, Math.round(durationSec / 60));
 const details = loggedItems.map((item) => {
 const ex = item.ex; const log = item.log;
 const parts = [ex.name + ':'];
-if (log.series && log.series.length) parts.push(log.series.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
+if (log.series && log.series.length) parts.push(log.series.map(s => (s.weight || '?') + 'lbs x ' + (s.reps || '?') + ' reps').join(', '));
 if (log.distance) parts.push(log.distance + 'km');
 if (log.time) parts.push(log.time);
 if (log.heartRate) parts.push('FC moy: ' + log.heartRate + ' bpm');
@@ -1238,7 +1249,7 @@ return stats;
 
 const primaryMetricText = (type, s) => {
 const t = (type || '').toLowerCase();
-if (t.includes('muscu')) return s.volume + ' kg';
+if (t.includes('muscu')) return s.volume + ' lbs';
 if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando') || t.includes('hike') || t.includes('marche')) {
 return s.distance + ' km';
 }
@@ -1249,7 +1260,7 @@ return s.sessions + (s.sessions > 1 ? ' séances' : ' séance');
 
 const summaryLine = (day, stats) => {
 const t = (day.type || '').toLowerCase();
-if (t.includes('muscu') && stats.volume > 0) return stats.volume + ' kg soulevés au total';
+if (t.includes('muscu') && stats.volume > 0) return stats.volume + ' lbs soulevés au total';
 if ((t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) && stats.distance > 0) return stats.distance + ' km parcourus';
 if (t.includes('cardio') && stats.timeMin > 0) return stats.timeMin + ' min au total';
 if (stats.loggedCount > 0) return stats.loggedCount + ' exercice(s) enregistré(s)';
@@ -1258,7 +1269,7 @@ return (day.exercises || []).length + ' exercice(s) au programme';
 
 const totalLine = (day, stats) => {
 const t = (day.type || '').toLowerCase();
-if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' kg soulevés';
+if (t.includes('muscu')) return '🏋️ Total: ' + stats.volume + ' lbs soulevés';
 if (t.includes('run') || t.includes('course') || t.includes('vélo') || t.includes('velo') || t.includes('cycl') || t.includes('rando')) return typeIcon(day.type) + ' Total: ' + stats.distance + ' km' + ((stats.distance > 0 && stats.timeMin > 0) ? (' · allure moy. ' + formatPaceFromStats(stats.distance, stats.timeMin) + ' min/km') : '');
 if (t.includes('cardio')) return '❤️ Total: ' + (stats.timeMin > 0 ? stats.timeMin + ' min' : 'N/A');
 return typeIcon(day.type) + ' Séance complétée';
@@ -1432,11 +1443,16 @@ setExerciseOrder({});
 };
 
 const detectMuscuSubtype = (day) => {
-const names = (day.exercises || []).map(e => normalizeText(e.name)).join(' | ');
-const count = (keys) => keys.reduce((acc, k) => acc + (names.includes(k) ? 1 : 0), 0);
-const push = count(['developpe','pompe','push','dips','triceps','epaule','militaire','ecarte','pec']);
-const pull = count(['rowing','traction','pull','tirage','curl','biceps','row','dorsaux']);
-const legs = count(['squat','fente','lunge','presse','leg press','mollet','calf','souleve de terre','deadlift','hip thrust','jambe','ischio','fessier']);
+const legsKeys = ['squat','fente','lunge','presse','leg press','mollet','calf','souleve de terre','deadlift','hip thrust','jambe','ischio','fessier'];
+const pushKeys = ['developpe','pompe','push','dips','triceps','epaule','militaire','ecarte','pec'];
+const pullKeys = ['tirage','rowing','traction','pull','curl','biceps','dorsaux'];
+let push = 0, pull = 0, legs = 0;
+(day.exercises || []).forEach((e) => {
+const n = normalizeText(e.name);
+if (legsKeys.some((k) => n.includes(k))) legs++;
+else if (pushKeys.some((k) => n.includes(k))) push++;
+else if (pullKeys.some((k) => n.includes(k))) pull++;
+});
 if (legs > 0 && legs >= push && legs >= pull) return 'Jambes';
 if (push > 0 && push >= pull) return 'Push';
 if (pull > 0) return 'Pull';
@@ -1448,6 +1464,7 @@ if (!day) return '';
 const type = (day.type || 'Seance').trim();
 const t = normalizeText(type);
 if (t.includes('muscu')) {
+if (t.includes('push') || t.includes('pull') || t.includes('jambe') || t.includes('legs') || t.includes('full body') || t.includes('full-body')) return type;
 const sub = detectMuscuSubtype(day);
 return sub ? (type + ' ' + sub) : type;
 }
@@ -1621,7 +1638,7 @@ if (val.series && val.series.length) {
 let maxW = 0;
 let totalReps = 0;
 val.series.forEach((s) => { const wt = parseFloat(s.weight) || 0; if (wt > maxW) maxW = wt; totalReps += (parseInt(s.reps, 10) || 0); });
-bits.push(val.series.length + ' series' + (maxW ? ', max ' + maxW + 'kg' : '') + (totalReps ? ', ' + totalReps + ' reps cumulees' : ''));
+bits.push(val.series.length + ' series' + (maxW ? ', max ' + maxW + 'lbs' : '') + (totalReps ? ', ' + totalReps + ' reps cumulees' : ''));
 }
 if (val.distance) bits.push(val.distance + 'km');
 if (val.time) bits.push(val.time);
@@ -1630,7 +1647,7 @@ if (val.heartRate) bits.push('FC ' + val.heartRate + ' bpm');
 if (val.notes) bits.push('note: ' + val.notes);
 if (bits.length) details.push(ex.name + ' (' + bits.join(' / ') + ')');
 });
-lines.push('- Semaine ' + w.week + ': ' + nbDays + ' seances prevues, volume ' + Math.round(vol) + ' kg' + (details.length ? ' | ' + details.join(' ; ') : ' | aucune donnee saisie'));
+lines.push('- Semaine ' + w.week + ': ' + nbDays + ' seances prevues, volume ' + Math.round(vol) + ' lbs' + (details.length ? ' | ' + details.join(' ; ') : ' | aucune donnee saisie'));
 });
 } else {
 lines.push('');
@@ -1646,7 +1663,7 @@ const ex = (day && day.exercises) ? day.exercises[p[1]] : null;
 const val = logs[key] || {};
 if (!ex) return;
 const bits = [];
-if (val.series && val.series.length) bits.push(val.series.map((s) => (s.weight || '-') + 'kg x ' + (s.reps || '-') + ' reps').join(', '));
+if (val.series && val.series.length) bits.push(val.series.map((s) => (s.weight || '-') + 'lbs x ' + (s.reps || '-') + ' reps').join(', '));
 if (val.distance) bits.push(val.distance + 'km');
 if (val.time) bits.push(val.time);
 if (val.allure) bits.push('allure ' + val.allure);
@@ -1767,7 +1784,7 @@ const day = lastWeek.plan.days[dayIdx];
 const ex = day && day.exercises[exIdx];
 if (!ex) return null;
 const details = [];
-if (val.series && val.series.length) details.push(val.series.map(s => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', '));
+if (val.series && val.series.length) details.push(val.series.map(s => (s.weight || '?') + 'lbs x ' + (s.reps || '?') + ' reps').join(', '));
 if (val.distance) details.push(val.distance + 'km');
 if (val.time) details.push(val.time);
 if (val.notes) details.push('note: ' + val.notes);
@@ -1792,7 +1809,7 @@ if (maxW2 > 0) { if (!lastWeekMaxWeights[ex2.name] || maxW2 > lastWeekMaxWeights
 });
 }
 if (Object.keys(lastWeekMaxWeights).length) {
-const weightsList = Object.entries(lastWeekMaxWeights).map(([n, w]) => n + ': ' + w + 'kg').join(', ');
+const weightsList = Object.entries(lastWeekMaxWeights).map(([n, w]) => n + ': ' + w + 'lbs').join(', ');
 progressionNote += ' Poids maximums soulevés la semaine précédente (par exercice): ' + weightsList + ". Pour chaque exercice de musculation similaire cette semaine, propose un poids conseillé ajusté dans le champ weight: augmente le poids de 5 à 10% si la progression semblait bonne (séries complétées sans difficulté signalée), ou réduis-le d'environ 5% si les notes ou les répétitions indiquent que l'exercice était difficile.";
 }
 const contextNote = '\n\nCONTEXTE COMPLET DE L ATHLETE ET HISTORIQUE REEL (sers-t en pour personnaliser finement charges, volumes et choix d exercices):\n' + buildTrainingContextText() + '\n';
@@ -1825,14 +1842,16 @@ const prompt = "Crée un plan d'entraînement complet pour une semaine (" + nbSe
 '{\n' +
 '"week": ' + weekNumber + ',\n' +
 '"days": [\n' +
-'{"day": "Lundi", "type": "Musculation", "exercises": [{"name": "Exercice 1", "sets": "4", "reps": "8-10", "weight": "100kg"}]},\n' +
+'{"day": "Lundi", "type": "Musculation Push", "exercises": [{"name": "Exercice 1", "sets": "4", "reps": "8-10", "weight": "220lbs"}]},\n' +
 '{"day": "Mardi", "type": "Running", "exercises": [{"name": "5km Run", "sets": "1", "reps": "N/A", "weight": "Distance: 5km"}]},\n' +
 '{"day": "Mercredi", "type": "Cardio", "exercises": [{"name": "Cardio mixte", "sets": "1", "reps": "N/A", "weight": "30min"}]},\n' +
 '{"day": "Jeudi", "type": "Crossfit", "exercises": [{"name": "WOD", "sets": "3", "reps": "10-15", "weight": "Variable"}]},\n' +
 '{"day": "Vendredi", "type": "Vélo", "exercises": [{"name": "Séance vélo", "sets": "1", "reps": "N/A", "weight": "Distance: 20km"}]}\n' +
 ']\n' +
 '}\n\n' +
-"Le tableau \"days\" doit contenir EXACTEMENT " + nbSessions + " séances, uniquement parmi les jours disponibles indiqués, et uniquement des types d'entraînement demandés. Adapte STRICTEMENT les exercices à l'équipement disponible listé ci-dessus (n'utilise jamais un équipement qui n'est pas dans la liste) et au temps disponible par séance. Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.";
+"Le tableau \"days\" doit contenir EXACTEMENT " + nbSessions + " séances, uniquement parmi les jours disponibles indiqués, et uniquement des types d'entraînement demandés. Adapte STRICTEMENT les exercices à l'équipement disponible listé ci-dessus (n'utilise jamais un équipement qui n'est pas dans la liste) et au temps disponible par séance. " +
+"RÈGLE STRICTE DE COHÉRENCE MUSCULAIRE: pour chaque séance de type \"Musculation\", précise le split directement dans le champ \"type\" (ex: \"Musculation Push\", \"Musculation Pull\", \"Musculation Jambes\", \"Musculation Full Body\") et ne mélange JAMAIS des exercices de patterns opposés dans une même séance: une séance Push ne contient QUE des exercices de poussée (développé couché, développé militaire, pompes, dips, triceps, écarté); une séance Pull ne contient QUE des exercices de tirage (rowing, tirage, traction, curl biceps, dos); une séance Jambes ne contient QUE des exercices de bas du corps (squat, fente, presse, mollets, ischios, fessiers, soulevé de terre). Répartis les groupes musculaires de façon équilibrée et progressive sur la semaine. " +
+"UNITÉS: exprime TOUJOURS les charges dans le champ \"weight\" en livres (lbs), jamais en kilogrammes, et les distances en kilomètres (km). Crée un plan équilibré et progressif par rapport à la semaine précédente si des données sont fournies. Réponds UNIQUEMENT avec le JSON.";
 const result = await callClaudeAPI([{ role: 'user', content: prompt }]);
 if (result) {
 try {
@@ -2069,6 +2088,18 @@ return next;
 });
 haptic(14);
 setMessage('🗑️ Exercice retire du plan');
+};
+
+const changeSessionDay = (dayIdx, newDay) => {
+setCurrentWeekPlan(prev => {
+if (!prev) return prev;
+const days = (prev.days || []).map((d, di) => (di !== dayIdx ? d : { ...d, day: newDay }));
+return { ...prev, days: days };
+});
+allowPlanReset.current = true;
+forceNextPush.current = true;
+haptic(10);
+setMessage('📅 Jour de la séance mis à jour: ' + newDay);
 };
 
 const deleteHistoryExercise = (weekIdx, dayIdx, exIdx) => {
@@ -2689,7 +2720,12 @@ const dwt = dayWorkoutTimes[dayIdx] || {};
 const elapsed = getDayElapsedSeconds(dayIdx);
 return (
 <div className="workout-day">
-<h3>{day.day} — {getDayCondensedLabel(day)}</h3>
+<h3 className="workout-day-head">
+<select className="day-select-inline" value={day.day} onChange={(e) => changeSessionDay(dayIdx, e.target.value)} aria-label="Changer le jour de cette séance">
+{WEEK_DAYS.map((wd) => (<option key={wd} value={wd}>{wd}</option>))}
+</select>
+{' — ' + getDayCondensedLabel(day)}
+</h3>
 {!dwt.start && (
 <p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px'}}>⏱️ Le chrono de la séance démarre automatiquement dès que tu enregistres ta première série, et s'arrête quand tu termines l'entraînement.</p>
 )}
@@ -2824,7 +2860,7 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
         </div>
         <div className="stat-card">
           <div className="value">{monthStats.volume}</div>
-          <div className="label">Volume (kg)</div>
+          <div className="label">Volume (lbs)</div>
         </div>
         <div className="stat-card">
           <div className="value">{monthStats.distance}</div>
@@ -2887,7 +2923,7 @@ Posez vos questions sur l'entraînement, la technique, la nutrition... Le coach 
 <div className="history-week-header">
 <h3>{'🟢 Semaine en cours'}</h3>
 </div>
-<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume({ plan: currentWeekPlan, logs: logs }) + ' kg cumulés (semaine en cours)'}</p>
+<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume({ plan: currentWeekPlan, logs: logs }) + ' lbs cumulés (semaine en cours)'}</p>
 {(currentWeekPlan.days || []).map((day, dayIdx) => {
 const stats = computeDayStats({ plan: currentWeekPlan, logs: logs }, dayIdx, day);
 if (stats.loggedCount === 0) return null;
@@ -2925,13 +2961,13 @@ return (
 </div>
 <div className="workout-card-exercise-detail">
 {'Réalisé: '}
-{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
+{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'lbs x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
 {log.allure ? ('· ' + log.allure + ' min/km ') : ''}
 {log.heartRate ? ('· FC moy ' + log.heartRate + 'bpm ') : ''}
 {log.notes ? ('— "' + log.notes + '"') : ''}
-{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
+{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'lbs → semaine suivante proposé ' + proposeNextWeight(maxW) + 'lbs'}</React.Fragment>)}
 </div>
 </div>
 </div>
@@ -2988,7 +3024,7 @@ const maxVol = Math.max.apply(null, arr.map(computeWeekTotalVolume).concat([1]))
 const heightPct = Math.max((vol / maxVol) * 100, 4);
 return (
 <div className="chart-bar-wrap" key={idx}>
-<div className="chart-bar" style={{height: heightPct + '%'}} title={vol + ' kg'}></div>
+<div className="chart-bar" style={{height: heightPct + '%'}} title={vol + ' lbs'}></div>
 <div className="chart-label">{new Date(w.completedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}</div>
 </div>
 );
@@ -3001,7 +3037,7 @@ return (
 <h3>{'Semaine terminée le ' + new Date(w.completedAt).toLocaleDateString('fr-FR')}</h3>
 <button className="btn-delete-week" onClick={() => deleteWeekEntry(wIdx)} title="Supprimer cet entraînement de l'historique">🗑️ Supprimer</button>
 </div>
-<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume(w) + ' kg cumulés'}</p>
+<p style={{fontSize: '12px', color: 'var(--orange-light)', marginBottom: '10px'}}>{'Volume: ' + computeWeekTotalVolume(w) + ' lbs cumulés'}</p>
 {(w.plan.days || []).map((day, dayIdx) => {
 const cardKey = w.week + '-' + dayIdx + '-' + wIdx;
 const stats = computeDayStats(w, dayIdx, day);
@@ -3042,7 +3078,7 @@ return (
 {hasLog && (
 <React.Fragment><br />
 {'Réalisé: '}
-{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'kg x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
+{logSets.length > 0 ? (logSets.map((s, si) => (s.weight || '?') + 'lbs x ' + (s.reps || '?') + ' reps').join(', ') + ' ') : ''}
 {log.distance ? (log.distance + 'km ') : ''}
 {log.time ? (log.time + ' ') : ''}
 {log.allure ? ('· ' + log.allure + ' min/km ') : ''}
@@ -3050,7 +3086,7 @@ return (
 {log.notes ? ('— "' + log.notes + '"') : ''}
 </React.Fragment>
 )}
-{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'kg → semaine suivante proposé ' + proposeNextWeight(maxW) + 'kg'}</React.Fragment>)}
+{maxW > 0 && (<React.Fragment><br />{'💡 max ' + maxW + 'lbs → semaine suivante proposé ' + proposeNextWeight(maxW) + 'lbs'}</React.Fragment>)}
 </div>
 </div>
 </div>
@@ -3146,7 +3182,7 @@ return (
 {sets.map((s, si) => (
 <div key={si} className="set-recorded-row">
 <span>{'Série ' + (si + 1)}</span>
-<span>{(s.weight || '?') + ' kg x ' + (s.reps || '?') + ' reps'}</span>
+<span>{(s.weight || '?') + ' lbs x ' + (s.reps || '?') + ' reps'}</span>
 </div>
 ))}
 </div>
@@ -3164,7 +3200,7 @@ return (
 <div className="set-input-row">
 <label>{'Série ' + (sets.length + 1) + (targetSets > 0 ? ((sets.length + 1) > targetSets ? ' (supplémentaire)' : ' / ' + targetSets) : '')}</label>
 <div className="set-input-fields">
-<input type="number" inputMode="decimal" step="0.5" aria-label="Poids en kilogrammes" placeholder="Poids (kg)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
+<input type="number" inputMode="decimal" step="0.5" aria-label="Poids en livres" placeholder="Poids (lbs)" value={currentSetWeight} onChange={(e) => setCurrentSetWeight(e.target.value)} />
 <input type="number" inputMode="numeric" step="1" aria-label="Nombre de répétitions" placeholder="Reps" value={currentSetReps} onChange={(e) => setCurrentSetReps(e.target.value)} />
 </div>
 <button type="button" onClick={saveSet}>💾 ENREGISTRER SÉRIE</button>
@@ -3236,11 +3272,11 @@ logExercise(logModal.dayIdx, logModal.exIdx, t ? {allure: p, allureManual: true,
 <button className="modal-close" aria-label="Fermer" onClick={() => setEditLog(null)}>✕</button>
 </div>
 <p style={{fontSize: '12px', color: 'var(--text-dim)', marginBottom: '12px'}}>Corrige tes resultats puis enregistre. Une serie laissee vide est retiree.</p>
-<label style={{fontSize: '13px', display: 'block', marginBottom: '8px'}}>🏋️ Series (kg x reps)</label>
+<label style={{fontSize: '13px', display: 'block', marginBottom: '8px'}}>🏋️ Series (lbs x reps)</label>
 {editLog.series.map((s, si) => (
 <div key={si} className="edit-series-row">
 <span>{'Serie ' + (si + 1)}</span>
-<input type="number" inputMode="decimal" placeholder="kg" value={s.weight} onChange={(e) => updateEditSeries(si, 'weight', e.target.value)} />
+<input type="number" inputMode="decimal" placeholder="lbs" value={s.weight} onChange={(e) => updateEditSeries(si, 'weight', e.target.value)} />
 <input type="number" inputMode="numeric" placeholder="reps" value={s.reps} onChange={(e) => updateEditSeries(si, 'reps', e.target.value)} />
 <button type="button" className="hist-icon-btn danger" title="Retirer cette serie" onClick={() => removeEditSeries(si)}>🗑️</button>
 </div>
